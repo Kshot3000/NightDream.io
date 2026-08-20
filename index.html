@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="en" data-theme="night">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NightDream.io — Live Cardano Native Token (CNT) &amp; Midnight Intelligence</title>
+  <meta name="description" content="The live home of Cardano Native Tokens (CNTs): real-time DEX prices, 7d charts, a 554-token registry, and a Midnight privacy-chain watchlist. Day for Cardano, night for Midnight — one calm, open dashboard." />
+  <meta property="og:title" content="NightDream.io — Cardano by day. Midnight by night." />
+  <meta property="og:description" content="Live Cardano Native Token (CNT) markets, 7d charts, a 554-token registry and the Midnight watchlist. Open, no ads, no trackers." />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#050609" />
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#edf3fc" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <script>
+    // Apply saved theme before first paint to avoid a flash of the wrong theme.
+    (function () {
+      try {
+        var saved = localStorage.getItem("nd-theme");
+        if (saved === "day" || saved === "night") {
+          document.documentElement.setAttribute("data-theme", saved);
+        }
+      } catch (e) { /* default stays "night" */ }
+    })();
+  </script>
+</head>
+<body id="top">
+  <a class="skip-link" href="#market">Skip to live market</a>
+
+  <header class="site-header">
+    <a class="brand" href="#top" aria-label="NightDream.io — home">
+      <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="bmBlue" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#8fb2ff" />
+            <stop offset="100%" stop-color="#2b55d8" />
+          </linearGradient>
+        </defs>
+        <circle class="tg-ring" cx="50" cy="50" r="48" />
+        <circle class="tg-night" cx="50" cy="50" r="48" />
+        <path d="M50 2 A48 48 0 0 1 50 98 A24 24 0 0 0 50 50 A24 24 0 0 1 50 2 Z" fill="url(#bmBlue)" />
+        <circle class="tg-star" cx="20" cy="30" r="2.2" />
+        <circle class="tg-star" cx="28" cy="15" r="1.5" />
+        <circle class="tg-star" cx="15" cy="48" r="1.5" />
+        <circle class="tg-eye-night" cx="50" cy="26" r="8.5" />
+        <circle class="tg-eye-day" cx="50" cy="74" r="8.5" />
+      </svg>
+      <span class="brand-name">NightDream<span class="brand-tld">.io</span></span>
+    </a>
+
+    <nav class="site-nav" aria-label="Primary">
+      <a href="#market">Day · Cardano</a>
+      <a href="#registry">Registry</a>
+      <a href="#midnight">Night · Midnight</a>
+      <a href="#heritage">Heritage</a>
+      <a href="#about">About</a>
+      <a href="#donate" class="nav-donate">Donate</a>
+    </nav>
+
+    <a class="ada-pill" href="#market" title="Live ADA price">
+      <span class="ada-pill-dot" aria-hidden="true"></span>
+      <span class="ada-pill-label">ADA</span>
+      <b class="ada-pill-price" id="pillAda">—</b>
+      <i class="ada-pill-chg" id="pillChg">—</i>
+    </a>
+
+    <button id="themeToggle" class="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to day theme" title="Day / Night — one toggle, two sides of the light">
+      <svg viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="ttBlue" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#8fb2ff" />
+            <stop offset="100%" stop-color="#2b55d8" />
+          </linearGradient>
+        </defs>
+        <circle class="tg-night" cx="50" cy="50" r="48" />
+        <path d="M50 2 A48 48 0 0 1 50 98 A24 24 0 0 0 50 50 A24 24 0 0 1 50 2 Z" fill="url(#ttBlue)" />
+        <circle class="tg-eye-night" cx="50" cy="26" r="9" />
+        <circle class="tg-eye-day" cx="50" cy="74" r="9" />
+      </svg>
+    </button>
+  </header>
+
+  <!-- ============ LIVE TAPE ============ -->
+  <div class="tape" id="tape" aria-hidden="true">
+    <div class="tape-track" id="tapeTrack"><span>Live CNT tape — warming up…</span></div>
+  </div>
+
+  <main>
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="hero-emblem" aria-hidden="true">
+        <svg viewBox="0 0 100 100" focusable="false">
+          <defs>
+            <linearGradient id="emBlue" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#8fb2ff" />
+              <stop offset="55%" stop-color="#4d7dff" />
+              <stop offset="100%" stop-color="#2b55d8" />
+            </linearGradient>
+            <radialGradient id="emNight" cx="38%" cy="32%" r="85%">
+              <stop offset="0%" stop-color="#2b3f8f" />
+              <stop offset="100%" stop-color="#05060b" />
+            </radialGradient>
+          </defs>
+          <circle class="em-ring" cx="50" cy="50" r="49" />
+          <circle cx="50" cy="50" r="48" fill="url(#emNight)" />
+          <path d="M50 2 A48 48 0 0 1 50 98 A24 24 0 0 0 50 50 A24 24 0 0 1 50 2 Z" fill="url(#emBlue)" />
+          <circle class="em-star" cx="22" cy="30" r="1.5" />
+          <circle class="em-star em-star-2" cx="14" cy="50" r="1.1" />
+          <circle class="em-star" cx="28" cy="68" r="1.3" />
+          <circle class="em-star em-star-3" cx="20" cy="16" r="0.9" />
+          <circle class="em-star em-star-2" cx="36" cy="10" r="0.9" />
+          <circle cx="50" cy="26" r="7.5" fill="url(#emNight)" />
+          <circle cx="50" cy="74" r="7.5" fill="#ffffff" />
+          <circle class="em-star em-star-2" cx="50" cy="26" r="2.4" />
+          <circle cx="50" cy="74" r="2.4" fill="#05060b" />
+        </svg>
+        <span class="em-glow" aria-hidden="true"></span>
+      </div>
+      <p class="hero-kicker">Public light · Private dark</p>
+      <h1>Cardano by day.<br /><span class="hero-grad">Midnight by night.</span></h1>
+      <p class="hero-sub">
+        One calm home for both sides of the chain: live markets for Cardano Native Tokens (CNTs)
+        in the daylight, official registry data for every asset on-chain, and a watch on the
+        upcoming Midnight privacy chain after dark. No ads, no noise — just data, open and honest,
+        for people who live on both sides of the light.
+      </p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#market">See the live market</a>
+        <a class="btn btn-ghost" href="#registry">Browse the CNT registry</a>
+        <a class="btn btn-ghost" href="#midnight">Enter Midnight</a>
+      </div>
+    </section>
+
+    <!-- ============ STATS ============ -->
+    <section class="stats" aria-label="Network snapshot">
+      <div class="stat">
+        <span class="stat-label">ADA / USD</span>
+        <span class="stat-value" id="adaPrice">—</span>
+        <span class="stat-sub" id="adaChange">waiting…</span>
+        <span class="stat-spark" id="adaSpark" aria-hidden="true"></span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">CNTs tracked</span>
+        <span class="stat-value" id="statCount">—</span>
+        <span class="stat-sub">core feed + your picks</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Midnight watchlist</span>
+        <span class="stat-value" id="statWatch">—</span>
+        <span class="stat-sub">tokens on the horizon</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Live feed</span>
+        <span class="stat-value feed-dot" id="statFeed" data-status="waiting">…</span>
+        <span class="stat-sub" id="statUpdated">waiting for first refresh</span>
+      </div>
+    </section>
+
+    <!-- ============ DAY / CARDANO MARKET ============ -->
+    <section id="market" class="section section-day reveal">
+      <header class="section-head">
+        <div>
+          <p class="section-kicker kicker-day">☀ Day · Public</p>
+          <h2>The Cardano market, in daylight</h2>
+          <p class="section-sub">
+            Live prices for the top of the Cardano ecosystem — DEXs &amp; liquidity, lending &amp;
+            stablecoins, infrastructure &amp; oracles, gaming &amp; launchpads, and the community &amp; meme
+            tier — plus any token you add. Pulled straight from Minswap's aggregated DEX pools, with
+            24h movement, 7d charts, volume and market cap where the public indices list them, and
+            official names from the Cardano Token Registry. Refreshed in your browser, once a minute.
+          </p>
+        </div>
+        <div class="controls">
+          <input id="tokenSearch" class="input" type="search" placeholder="Filter name or symbol…  ( / )" autocomplete="off" aria-label="Filter tokens" />
+          <select id="sortSelect" class="input" aria-label="Sort tokens">
+            <option value="volume" selected>Sort: 24h volume</option>
+            <option value="category">Sort: Category → volume</option>
+            <option value="price">Sort: Price</option>
+            <option value="mcap">Sort: Market cap</option>
+            <option value="change">Sort: 24h change</option>
+            <option value="name">Sort: Name</option>
+          </select>
+          <button id="refreshBtn" class="btn btn-ghost" type="button" title="Refresh now">
+            <svg class="refresh-ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">
+              <path d="M12 4V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-9z" fill="currentColor" />
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </header>
+
+      <div class="table-wrap">
+        <table class="market-table">
+          <caption class="sr-only">Live Cardano Native Token (CNT) prices</caption>
+          <thead>
+            <tr>
+              <th scope="col">Rank</th>
+              <th scope="col">Token</th>
+              <th scope="col" class="num">Price</th>
+              <th scope="col" class="num">24h</th>
+              <th scope="col" class="num">7d</th>
+              <th scope="col" class="num">Volume (24h)</th>
+              <th scope="col" class="num">Market cap</th>
+            </tr>
+          </thead>
+          <tbody id="marketBody"></tbody>
+        </table>
+        <p class="feed-note" id="feedNote" role="status" aria-live="polite">Loading the day…</p>
+      </div>
+
+      <!-- Add token -->
+      <div class="add-panel">
+        <div class="add-head">
+          <h3>Add a CNT to your live list</h3>
+          <p>Search by name or symbol — only tokens that actually live on Cardano will appear, so no
+             wrong-chain impostors. Or paste a full asset ID (policy + name, one hex string) to track
+             any Cardano Native Token with live Minswap pricing, even if no index lists it.
+             Your list is saved privately in this browser.</p>
+        </div>
+        <div class="add-row">
+          <input id="tokenAddInput" class="input" type="search" placeholder="e.g. Minswap, SundaeSwap, Muesli… or paste an asset ID" autocomplete="off" aria-label="Token to add" />
+          <button id="tokenAddBtn" class="btn btn-primary" type="button">Search Cardano</button>
+        </div>
+        <p id="tokenAddStatus" class="add-status" role="status"></p>
+        <div id="tokenAddResults" class="add-results"></div>
+
+        <div id="customWrap" class="custom-wrap" hidden>
+          <h4>Your tracked tokens</h4>
+          <div id="customChips" class="chips"></div>
+        </div>
+      </div>
+
+      <!-- Optional feed settings -->
+      <details class="settings-panel">
+        <summary>Feed settings</summary>
+        <p>
+          <strong>How the board is priced</strong> — Minswap's DEX pools first, which prices
+          <em>any</em> Cardano asset ID, then CoinGecko for 24h stats and 7d charts, with an
+          optional Charli3 key as a rescue. The ADA stat is cross-checked against the independent,
+          signed <a href="https://diadata.org" target="_blank" rel="noopener noreferrer">DIA oracle</a>
+          (keyless, browser-safe). The other big Cardano feeds (Sundaeswap, CoinMarketCap, TradingView,
+          OKX, Pyth) were evaluated; each is blocked for a browser-only site — no CORS, majors-only,
+          or retired — so the pipeline above carries the board.
+        </p>
+        <p>
+          Optional: a free CoinGecko API key (from <a href="https://www.coingecko.com/en/api" target="_blank" rel="noopener noreferrer">coingecko.com/api</a>)
+          raises rate limits and unlocks the full Cardano coin list for discovery. Stored only in this browser —
+          never sent anywhere except CoinGecko.
+        </p>
+        <div class="add-row">
+          <input id="cgKeyInput" class="input" type="password" placeholder="CG demo API key (optional)" autocomplete="off" aria-label="CoinGecko API key" />
+          <button id="cgKeySave" class="btn btn-ghost" type="button">Save</button>
+          <button id="cgKeyClear" class="btn btn-ghost" type="button">Remove</button>
+        </div>
+        <p id="cgKeyStatus" class="add-status" role="status"></p>
+        <p>
+          Optional: a Charli3 API key (from <a href="https://charli3.io" target="_blank" rel="noopener noreferrer">charli3.io</a>)
+          adds a third, multi-DEX price source covering 17,000+ tokens — used only as a rescue when
+          Minswap and CoinGecko can't price a token. Stored only in this browser — never sent
+          anywhere except Charli3.
+        </p>
+        <div class="add-row">
+          <input id="c3KeyInput" class="input" type="password" placeholder="Charli3 API key (optional)" autocomplete="off" aria-label="Charli3 API key" />
+          <button id="c3KeySave" class="btn btn-ghost" type="button">Save</button>
+          <button id="c3KeyClear" class="btn btn-ghost" type="button">Remove</button>
+        </div>
+        <p id="c3KeyStatus" class="add-status" role="status"></p>
+      </details>
+    </section>
+
+    <div class="yin-divider" aria-hidden="true">
+      <span class="yin-line"></span>
+      <svg class="yin-mark" viewBox="0 0 100 100" focusable="false">
+        <circle cx="50" cy="50" r="46" fill="var(--divider-night)" />
+        <path d="M50 4 A46 46 0 0 1 50 96 A23 23 0 0 0 50 50 A23 23 0 0 1 50 4 Z" fill="var(--divider-day)" />
+        <circle cx="50" cy="27" r="7" fill="var(--divider-night)" />
+        <circle cx="50" cy="73" r="7" fill="var(--divider-day)" />
+        <circle cx="50" cy="27" r="2.4" fill="var(--divider-day)" />
+        <circle cx="50" cy="73" r="2.4" fill="var(--divider-night)" />
+      </svg>
+      <span class="yin-line"></span>
+    </div>
+
+    <!-- ============ REGISTRY ============ -->
+    <section id="registry" class="section section-day reveal">
+      <header class="section-head">
+        <div>
+          <p class="section-kicker kicker-day">☀ Day · Public</p>
+          <h2>The CNT registry</h2>
+          <p class="section-sub">
+            554 Cardano Native Tokens with their on-chain asset IDs — ready for CExplorer and ADAstats,
+            for wallets, dApps and your own research. Press <strong>Track</strong> on any row to add it
+            to the live market board above, priced from Minswap's pools. Instant and offline; it ships
+            with the page, so it works even when the data APIs are busy.
+          </p>
+        </div>
+        <div class="controls">
+          <input id="regSearch" class="input" type="search" placeholder="Search ticker or asset ID…" autocomplete="off" aria-label="Search registry" />
+          <span class="reg-count" id="regTotal" aria-live="polite"></span>
+        </div>
+      </header>
+
+      <div class="table-wrap">
+        <table class="market-table registry-table">
+          <caption class="sr-only">Cardano Native Token registry: ticker, asset ID, on-chain links</caption>
+          <thead>
+            <tr>
+              <th scope="col">Ticker</th>
+              <th scope="col">Asset ID (policy · name)</th>
+              <th scope="col" class="num">On-chain</th>
+              <th scope="col" class="num">Live</th>
+            </tr>
+          </thead>
+          <tbody id="regBody"></tbody>
+        </table>
+      </div>
+      <p class="feed-note" id="regMeta" role="status"></p>
+      <div class="reg-more-wrap">
+        <button id="regMore" class="btn btn-ghost" type="button">Show 25 more</button>
+      </div>
+    </section>
+
+    <!-- ============ NIGHT / MIDNIGHT ============ -->
+    <section id="midnight" class="section section-night reveal">
+      <div class="night-stars" aria-hidden="true"></div>
+      <header class="section-head">
+        <div>
+          <p class="section-kicker kicker-night">☾ Night · Private</p>
+          <h2>Midnight — Cardano's night side</h2>
+          <p class="section-sub">
+            Midnight is Cardano's privacy sidechain: the same assets and identity, with a dial that runs
+            from fully public to fully private. Head of the watchlist is <b>NIGHT</b> — Midnight's native
+            privacy token, the night twin of ADA. Track the tokens expected to launch here, and plug in
+            live market data the moment a public index exists.
+          </p>
+        </div>
+      </header>
+
+      <div class="privacy-dial" aria-hidden="true">
+        <div class="dial-bar"></div>
+        <div class="dial-labels">
+          <span>T3 · fully public</span>
+          <span>T2 · permissioned</span>
+          <span>T1 · fully private</span>
+        </div>
+      </div>
+
+      <div class="tier-grid">
+        <article class="tier-card tier-public">
+          <h3>T3 · Public</h3>
+          <p>Fully transparent — exactly like today's Cardano market. The daylight you already know.</p>
+        </article>
+        <article class="tier-card tier-perm">
+          <h3>T2 · Permissioned</h3>
+          <p>Selective disclosure: reveal ownership only to the verifiers you allow, for compliance and trust.</p>
+        </article>
+        <article class="tier-card tier-private">
+          <h3>T1 · Private</h3>
+          <p>Fully anonymous assets. Without your keys, no one can see who holds or moves them.</p>
+        </article>
+      </div>
+
+      <div class="watch-panel">
+        <div class="watch-head">
+          <h3>Midnight watchlist</h3>
+          <p>Your personal radar of upcoming Midnight tokens. Saved privately in your browser — no account, no server.</p>
+        </div>
+
+        <div class="table-wrap night-wrap">
+          <table class="watch-table">
+            <caption class="sr-only">Your Midnight token watchlist</caption>
+            <thead>
+              <tr>
+                <th scope="col">Token</th>
+                <th scope="col">Symbol</th>
+                <th scope="col">Status</th>
+                <th scope="col">Expected</th>
+                <th scope="col">Note</th>
+                <th scope="col" class="sr-only">Remove</th>
+              </tr>
+            </thead>
+            <tbody id="watchBody"></tbody>
+          </table>
+        </div>
+
+        <form id="watchForm" class="watch-form" autocomplete="off">
+          <input name="name" required maxlength="40" placeholder="Token name" aria-label="Token name" />
+          <input name="symbol" required maxlength="12" placeholder="SYMBOL" aria-label="Token symbol" />
+          <select name="status" aria-label="Status">
+            <option>Announced</option>
+            <option>Testnet</option>
+            <option>Mainnet (expected)</option>
+            <option>Live</option>
+          </select>
+          <input name="target" maxlength="16" placeholder="e.g. 2026 Q4" aria-label="Expected date" />
+          <input name="note" maxlength="80" placeholder="Note (optional)" aria-label="Note" />
+          <button class="btn btn-primary" type="submit">Add to watch</button>
+        </form>
+
+        <div class="hook">
+          <h4>Live data hook</h4>
+          <p>
+            Midnight's token markets are still maturing. As soon as a public price index exists, paste
+            its JSON endpoint below and NightDream will check it on every load. The tokens on your
+            radar will join the live board the moment a source can price them — the same
+            Minswap → CoinGecko → Charli3 pipeline already running on the daylight side.
+          </p>
+          <div class="hook-row">
+            <input id="midnightEndpoint" class="input" type="url" placeholder="https://…/midnight/tokens" aria-label="Midnight data endpoint" />
+            <button id="testEndpoint" class="btn btn-ghost" type="button">Test connection</button>
+          </div>
+          <p id="endpointStatus" class="hook-status" role="status"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ HERITAGE / TAPTOOLS ============ -->
+    <section id="heritage" class="section section-heritage reveal">
+      <header class="section-head">
+        <div>
+          <p class="section-kicker">Legacy · taptools.io</p>
+          <h2>From TapTools to NightDream</h2>
+          <p class="section-sub">
+            What the old community dashboard was, what survived of it, and how NightDream picks up the work.
+          </p>
+        </div>
+      </header>
+
+      <div class="heritage-grid">
+        <article class="heritage-card">
+          <h3>What TapTools was</h3>
+          <p>
+            TapTools (taptools.io) was the Cardano community's go-to token dashboard: a live leaderboard of
+            community tokens (CNTs) ranked by 24-hour volume, top movers, recently added and recently
+            boosted tokens, per-token price charts, NFT boards, Cardano network stats and epoch data —
+            plus a Pro tier with hot-wallet tracking.
+          </p>
+          <p>
+            In 2026 the site shut down. The domain now serves a farewell page (“Thank You for Being Part of
+            Our Journey”), and every data endpoint it used to expose answers HTTP 404 (verified August 2026).
+            The numbers themselves are gone with the backend.
+          </p>
+        </article>
+
+        <article class="heritage-card">
+          <h3>The old data feed, documented</h3>
+          <p>TapTools' public API surface, recovered from web-archive index listings before it went dark:</p>
+          <table class="api-table">
+            <caption class="sr-only">TapTools API endpoints and their purpose</caption>
+            <thead>
+              <tr>
+                <th scope="col">Endpoint</th>
+                <th scope="col">Purpose</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>/api/market/tokens/rankings</code></td><td>Token leaderboard — page, order, rank-by (volume etc.), timeframes, quote, subcategory</td></tr>
+              <tr><td><code>/api/market/tokens/ticker</code></td><td>Full token ticker list</td></tr>
+              <tr><td><code>/api/market/tokens/topMovers/extended</code></td><td>Top gainers and losers</td></tr>
+              <tr><td><code>/api/market/tokens/recentlyAdded/extended</code></td><td>Newly listed tokens</td></tr>
+              <tr><td><code>/api/market/tokens/recentlyBoosted</code></td><td>Recently promoted tokens</td></tr>
+              <tr><td><code>/api/market/pairs/ohlcv</code></td><td>Candlestick (OHLCV) chart data per pair</td></tr>
+              <tr><td><code>/api/market/tokens/pairs/all</code></td><td>All trading pairs for a token</td></tr>
+              <tr><td><code>/api/asset/token/get</code></td><td>Single token details by policy ID + asset name</td></tr>
+              <tr><td><code>/api/asset/subcategory/options</code></td><td>Subcategory filter list</td></tr>
+              <tr><td><code>/api/asset/recentlyUpdated</code></td><td>Recently updated assets</td></tr>
+              <tr><td><code>/api/cardano/stats/current</code></td><td>Cardano network stats</td></tr>
+              <tr><td><code>/api/epoch</code></td><td>Current epoch information</td></tr>
+            </tbody>
+          </table>
+          <p class="fine">
+            Honest note: the archived API responses in the Wayback Machine are stored encrypted, and Common
+            Crawl captured only the HTML shells — so the historical numbers cannot be recovered from public
+            archives. If you hold an export of the old data (CSV, JSON, spreadsheets), send it over and it
+            will be folded into this archive.
+          </p>
+        </article>
+
+        <article class="heritage-card">
+          <h3>What NightDream keeps</h3>
+          <ul class="map-list">
+            <li><span>Token rankings by volume</span> → live market table + filter &amp; sort</li>
+            <li><span>Top movers</span> → sort by 24h change, up/down at a glance</li>
+            <li><span>Recently added tokens</span> → Add-Token panel: your list grows over time</li>
+            <li><span>Token directory</span> → 554-entry CNT registry with asset IDs &amp; explorer links</li>
+            <li><span>Cardano network stats</span> → live ADA ticker in the stats strip</li>
+            <li><span>Watch for what's next</span> → Midnight watchlist + live data hook</li>
+          </ul>
+          <p class="fine">
+            Same mission, new keeper: open data, no ads, no trackers, and a dashboard that belongs to the
+            community instead of one company's decision to switch off the lights.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section id="about" class="section reveal">
+      <div class="about-grid">
+        <div>
+          <p class="section-kicker">The story</p>
+          <h2>Built to keep the lights on</h2>
+          <p>
+            Cardano lost some of the tools the community leaned on — token dashboards that went dark
+            with a single decision. NightDream.io is the answer: an open, no-ads dashboard that anyone
+            can read, mirror and rebuild.
+          </p>
+          <p>
+            Daylight data comes from a small constellation of public sources: Minswap's aggregator for
+            live pool prices, the Cardano Token Registry for official, signature-checked names, CoinGecko
+            for 24h stats and 7d charts, and an optional Charli3 key for wider coverage — all joined to a
+            bundled registry of Cardano Native Tokens. Midnight's night-side data will plug in here as the
+            chain's public indexes mature. Everything runs in your browser — nothing is stored on a
+            server, and nothing is sold.
+          </p>
+          <p>
+            If you have a backup of old tool data — CSV, JSON, spreadsheets, exports — you'd like
+            preserved, send it over and it will be folded into the heritage archive above.
+          </p>
+          <p class="creator-line">Built by <a href="https://x.com/kshot9000" target="_blank" rel="noopener noreferrer">@kshot9000</a> for the Cardano &amp; Midnight community.</p>
+        </div>
+        <ul class="about-list">
+          <li>Live prices from Minswap's DEX pools + CoinGecko 24h stats — refreshed every minute</li>
+          <li>7d price charts on every indexed token, straight in the table</li>
+          <li>Click any row for a full token dossier — price, stats, on-chain links</li>
+          <li>Track any of the 554 registry tokens live with one click, or paste any asset ID</li>
+          <li>554-token CNT registry with asset IDs, CExplorer &amp; ADAstats links</li>
+          <li>A Midnight watchlist that lives privately in your browser</li>
+          <li>Day / Night theme — public and private, one toggle away</li>
+          <li>Zero trackers, zero ads, fully static — cheap to host, hard to kill</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ DONATE ============ -->
+    <section id="donate" class="section reveal">
+      <div class="donate-card">
+        <div class="donate-copy">
+          <p class="section-kicker">Keep the lights on</p>
+          <h2>Donate in ADA</h2>
+          <p>
+            NightDream.io is free and open. If it helps you follow both sides of the chain,
+            a small donation keeps the site alive and the coffee warm.
+          </p>
+          <div class="addr-box">
+            <code id="donateAddr" class="addr">addr1q8hnl6vl5a6k3rw3n5g3jtte696zcl76kfatzv7gpswa9r0dj7fma6klq55y4ffm7tf0em09udnyhuk4ah92pl5x9jpqjae44v</code>
+            <button id="copyAddr" class="btn btn-primary" type="button">Copy address</button>
+          </div>
+          <p class="donate-note">Cardano mainnet address. Double-check before you send — crypto can't be un-sent.</p>
+        </div>
+        <div class="qr-wrap">
+          <div id="qrBox" class="qr-box" role="img" aria-label="QR code of the Cardano donation address"></div>
+          <p class="qr-fallback">Scan with your wallet, or copy the address above.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div>
+        <svg class="brand-mark brand-mark-sm" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+          <circle class="tg-night" cx="50" cy="50" r="48" />
+          <path d="M50 2 A48 48 0 0 1 50 98 A24 24 0 0 0 50 50 A24 24 0 0 1 50 2 Z" fill="var(--accent)" />
+          <circle class="tg-eye-night" cx="50" cy="26" r="8.5" />
+          <circle class="tg-eye-day" cx="50" cy="74" r="8.5" />
+        </svg>
+        <p class="footer-tag">Day for Cardano. Night for Midnight. One calm dashboard.</p>
+        <a class="creator" href="https://x.com/kshot9000" target="_blank" rel="noopener noreferrer">
+          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644z"/></svg>
+          <span>Created by <strong>@kshot9000</strong> on X</span>
+        </a>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <nav class="footer-nav" aria-label="Footer">
+          <a href="#market">Day · Cardano market</a>
+          <a href="#registry">CNT registry</a>
+          <a href="#midnight">Night · Midnight watch</a>
+          <a href="#heritage">TapTools heritage</a>
+          <a href="#about">About</a>
+          <a href="#donate">Donate</a>
+        </nav>
+      </div>
+      <div>
+        <h4>Data &amp; trust</h4>
+        <p>
+          Live prices from the Minswap Aggregator (Cardano DEX pools), CoinGecko as fallback and for
+          24h stats and 7d charts, optional Charli3 multi-DEX feed with a key. Official names from the
+          Cardano Token Registry (tokens.cardano.org). Static registry from the Minswap community token
+          list. Midnight watchlist is local to your browser. Information is provided as-is, for community
+          use — it is not financial advice.
+        </p>
+      </div>
+    </div>
+    <p class="footer-fine">© 2026 NightDream.io · Built for the Cardano &amp; Midnight community · Static site on GitHub Pages · No trackers, no ads</p>
+  </footer>
+
+  <!-- ============ TOKEN DRAWER ============ -->
+  <div class="scrim" id="drawerScrim" hidden></div>
+  <aside class="drawer" id="tokenDrawer" role="dialog" aria-modal="true" aria-labelledby="drawerName" hidden>
+    <header class="drawer-head">
+      <div class="drawer-id">
+        <img id="drawerImg" alt="" hidden />
+        <div class="drawer-id-text">
+          <h3 id="drawerName">—</h3>
+          <p class="drawer-sub" id="drawerSub">—</p>
+        </div>
+      </div>
+      <button class="icon-btn" id="drawerClose" type="button" aria-label="Close token details">✕</button>
+    </header>
+
+    <div class="drawer-price-row">
+      <span class="drawer-price" id="drawerPrice">—</span>
+      <span class="src" id="drawerSrc" hidden>◆</span>
+    </div>
+    <p class="drawer-ada" id="drawerAda" hidden></p>
+
+    <div class="drawer-chart-wrap" id="drawerChartWrap" hidden>
+      <h4>7d price</h4>
+      <div class="drawer-chart" id="drawerChart"></div>
+    </div>
+
+    <div class="drawer-stats">
+      <div class="dstat"><span>24h change</span><b id="drawerChg">—</b></div>
+      <div class="dstat"><span>Volume (24h)</span><b id="drawerVol">—</b></div>
+      <div class="dstat"><span>Market cap</span><b id="drawerMcap">—</b></div>
+      <div class="dstat"><span>Source</span><b id="drawerSrcLabel">—</b></div>
+    </div>
+
+    <div class="drawer-meta" id="drawerMetaWrap" hidden>
+      <h4>On-chain &amp; links</h4>
+      <div class="asset-id-row">
+        <code id="drawerAsset">—</code>
+        <button class="btn btn-ghost btn-sm" id="drawerCopyAsset" type="button">Copy ID</button>
+      </div>
+      <div class="drawer-links">
+        <a id="drawerLinkCE" href="#" target="_blank" rel="noopener noreferrer">CExplorer ↗</a>
+        <a id="drawerLinkAS" href="#" target="_blank" rel="noopener noreferrer">ADAstats ↗</a>
+        <a id="drawerLinkCG" href="#" target="_blank" rel="noopener noreferrer">CoinGecko ↗</a>
+        <a id="drawerLinkWeb" href="#" target="_blank" rel="noopener noreferrer">Project ↗</a>
+      </div>
+    </div>
+
+    <p class="drawer-fine">Data is provided as-is, for community use — it is not financial advice.</p>
+  </aside>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/qr.js" defer></script>
+  <script src="js/registry.js" defer></script>
+  <script src="js/feeds.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>
