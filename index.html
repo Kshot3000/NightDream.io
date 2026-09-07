@@ -1,23 +1,181 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NightDream.io</title>
-<style>
-body{font-family:system-ui,sans-serif;margin:0;padding:0;display:flex;min-height:100vh;align-items:center;justify-content:center;background:#0a0a0f;color:#e8e8f0}
-.card{background:#11121a;padding:40px 60px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.4);text-align:center}
-h1{margin:0 0 12px;font-size:2.2rem}
-p{opacity:.8}
-a{color:#8aa4ff;text-decoration:none}
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="NightDream.io — Cardano market analytics, portfolio tracking, and token insights." />
+  <title>NightDream.io — Cardano Analytics</title>
+  <link rel="icon" href="./assets/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./css/styles.css" />
 </head>
 <body>
-<div class="card">
-<h1>NightDream.io</h1>
-<p>NightDream.io Taptools Clone</p>
-<p>Welcome to the NightDream workspace. This is a placeholder static site.</p>
-<p><a href="https://github.com/Kshot3000/NightDream.io">View on GitHub</a></p>
-</div>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Primary">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="28" height="28"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7c6cff"/><stop offset="1" stop-color="#3dd6c6"/></linearGradient></defs><rect width="32" height="32" rx="8" fill="url(#g)"/><path d="M8 20c4-8 12-8 16 0" stroke="#0a0b12" stroke-width="2.2" fill="none" stroke-linecap="round"/><circle cx="16" cy="12" r="2.2" fill="#0a0b12"/></svg>
+        </div>
+        <div>
+          <div class="brand-name">NightDream</div>
+          <div class="brand-sub">Cardano analytics</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav-item active" href="#overview" data-section="overview"><span class="nav-icon">◈</span> Overview</a>
+        <a class="nav-item" href="#markets" data-section="markets"><span class="nav-icon">◎</span> Markets</a>
+        <a class="nav-item" href="#tokens" data-section="tokens"><span class="nav-icon">✦</span> Tokens</a>
+        <a class="nav-item" href="#portfolio" data-section="portfolio"><span class="nav-icon">◉</span> Portfolio</a>
+        <a class="nav-item" href="#charts" data-section="charts"><span class="nav-icon">▤</span> Charts</a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="demo-pill">Demo data</div>
+        <a class="gh-link" href="https://github.com/Kshot3000/NightDream.io" target="_blank" rel="noopener">View on GitHub</a>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-btn menu-btn" id="menuBtn" aria-label="Toggle menu">☰</button>
+        <div class="search">
+          <span class="search-icon" aria-hidden="true">⌕</span>
+          <input id="searchInput" type="search" placeholder="Search tokens, policies, wallets…" autocomplete="off" />
+        </div>
+        <div class="topbar-actions">
+          <span class="network-chip"><span class="dot"></span> Cardano mainnet</span>
+          <button class="btn btn-primary" id="connectBtn" type="button">Connect wallet</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section id="overview" class="section visible">
+          <div class="page-head">
+            <div>
+              <h1>Market overview</h1>
+              <p class="muted">TapTools-style Cardano analytics — rebuilt for NightDream.</p>
+            </div>
+            <div class="page-meta">
+              <span id="lastUpdated">Updated just now</span>
+            </div>
+          </div>
+
+          <div class="stat-grid" id="statGrid"></div>
+
+          <div class="panel-grid">
+            <section class="panel chart-panel">
+              <div class="panel-head">
+                <h2>ADA · 24h</h2>
+                <div class="seg" role="group" aria-label="Chart range">
+                  <button class="seg-btn active" data-range="24h">24H</button>
+                  <button class="seg-btn" data-range="7d">7D</button>
+                  <button class="seg-btn" data-range="30d">30D</button>
+                </div>
+              </div>
+              <div class="chart-wrap">
+                <canvas id="priceChart" width="800" height="280" aria-label="ADA price chart"></canvas>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel-head">
+                <h2>Trending</h2>
+                <span class="muted small">Volume · 24h</span>
+              </div>
+              <ul class="trend-list" id="trendList"></ul>
+            </section>
+          </div>
+        </section>
+
+        <section id="markets" class="section">
+          <div class="page-head">
+            <div>
+              <h1>Markets</h1>
+              <p class="muted">Top Cardano pairs by volume (demo).</p>
+            </div>
+          </div>
+          <div class="panel table-panel">
+            <div class="table-scroll">
+              <table class="data-table" id="marketsTable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Pair</th>
+                    <th>Price</th>
+                    <th>24h</th>
+                    <th>Volume</th>
+                    <th>Liquidity</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="tokens" class="section">
+          <div class="page-head">
+            <div>
+              <h1>Tokens</h1>
+              <p class="muted">Native assets with market stats (demo).</p>
+            </div>
+          </div>
+          <div class="token-grid" id="tokenGrid"></div>
+        </section>
+
+        <section id="portfolio" class="section">
+          <div class="page-head">
+            <div>
+              <h1>Portfolio</h1>
+              <p class="muted">Connect a wallet to track holdings and P&amp;L.</p>
+            </div>
+          </div>
+          <div class="panel portfolio-empty">
+            <div class="empty-icon" aria-hidden="true">◉</div>
+            <h2>No wallet connected</h2>
+            <p class="muted">NightDream will show ADA + native assets, allocation, and unrealized P&amp;L once you connect.</p>
+            <button class="btn btn-primary" id="connectBtn2" type="button">Connect wallet</button>
+            <p class="tiny muted">Wallet connect is a placeholder in this demo build.</p>
+          </div>
+        </section>
+
+        <section id="charts" class="section">
+          <div class="page-head">
+            <div>
+              <h1>Charts</h1>
+              <p class="muted">Interactive chart workspace (demo).</p>
+            </div>
+          </div>
+          <div class="panel chart-panel wide">
+            <div class="panel-head">
+              <h2 id="chartTitle">ADA / USD</h2>
+              <select id="chartAsset" aria-label="Select asset">
+                <option value="ADA">ADA</option>
+                <option value="MIN">MIN</option>
+                <option value="SNEK">SNEK</option>
+                <option value="HOSKY">HOSKY</option>
+              </select>
+            </div>
+            <div class="chart-wrap tall">
+              <canvas id="detailChart" width="1000" height="360" aria-label="Detail price chart"></canvas>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span>NightDream.io · TapTools-inspired Cardano analytics</span>
+        <span class="muted">Demo UI · not financial advice</span>
+      </footer>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+  <div class="backdrop" id="backdrop" hidden></div>
+
+  <script src="./js/app.js" defer></script>
 </body>
 </html>
