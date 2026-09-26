@@ -4,6 +4,7 @@
    - DexScreener /latest/dex       → DEX pairs, buys/sells, liquidity
    - Koios      /api/v1            → on-chain asset info, holders, address/wallet data
    - MinSwap aggregator            → ADA/USD reference price
+   - NightForge mainnet.nightforge.jp → Midnight network analytics
    Every fetch is cached (memory + localStorage) and fails soft → null.
    UI must always handle null with skeletons / error states + retry. */
 window.LIVE = (function () {
@@ -247,11 +248,22 @@ window.LIVE = (function () {
     return null;
   }
 
+
+  /* ——— Midnight network (NightForge explorer) ——— */
+  const NF = "https://mainnet.nightforge.jp/api";
+  async function nightforgeOverview() {
+    return jget(`${NF}/analytics/overview`, 60 * 1000);
+  }
+  async function nightforgeHealth() {
+    return jget(`${NF}/health`, 60 * 1000);
+  }
+
   return {
     markets, chart, ohlc, detail, dexPairs,
     koiosAsset, koiosHolders, koiosAddressInfo, koiosAccountAssets, koiosAddressTxs, koiosTip,
     adaPrice, priceForUnit, categoryFor,
+    nightforgeOverview, nightforgeHealth,
     cacheGet, cacheSet, cacheDel,
-    CG, KOIOS, DEXS,
+    CG, KOIOS, DEXS, NF,
   };
 })();

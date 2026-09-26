@@ -644,6 +644,35 @@
     $("#bridgeNote").textContent = ND.MIDNIGHT.bridgeNote;
     updateDustCalc();
     drawNightChart(chartRanges.NIGHT);
+    paintMidnightNetwork();
+  }
+  async function paintMidnightNetwork() {
+    const host = $("#mnNetStats");
+    const src = $("#mnNetSource");
+    if (!host) return;
+    host.innerHTML = skelCards(6);
+    const o = await LIVE.nightforgeOverview();
+    if (!o) {
+      host.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:18px">
+        <strong>NightForge unreachable</strong>
+        <span class="muted">Network stats will retry on the next refresh. NIGHT price above still comes from CoinGecko.</span>
+      </div>`;
+      if (src) src.textContent = "NightForge · offline";
+      return;
+    }
+    const fmtN = (n) => (n == null ? "—" : fmt.num(n));
+    const items = [
+      ["Blocks", fmtN(o.blocks)],
+      ["TPS", o.tps != null ? Number(o.tps).toFixed(3) : "—"],
+      ["Shielded", o.shieldedRatio != null ? (o.shieldedRatio * 100).toFixed(1) + "%" : "—"],
+      ["Avg block", o.avgBlockTime != null ? o.avgBlockTime + "s" : "—"],
+      ["Bridge ops", fmtN(o.bridgeOps)],
+      ["Committee", o.committeeSize != null ? String(o.committeeSize) : "—"],
+    ];
+    host.innerHTML = items.map(([label, value]) => `
+      <div class="stat-card"><div class="stat-label">${label} · live</div>
+      <div class="stat-value">${value}</div></div>`).join("");
+    if (src) src.textContent = "NightForge · live";
   }
   async function drawNightChart(range) {
     const days = range === "24H" ? 1 : range === "7D" ? 7 : 30;
@@ -818,6 +847,14 @@
     $("#sidebar")?.classList.remove("open");
     $("#sidebarOverlay")?.classList.remove("show");
   }
+
+  $("#copyDonate")?.addEventListener("click", async () => {
+    const addr = $("#donateAddr")?.textContent?.trim();
+    if (!addr) return;
+    try { await navigator.clipboard.writeText(addr); toast("ADA donation address copied"); }
+    catch (_) { toast("Copy failed — select the address"); }
+  });
+  $("#donateAddr")?.addEventListener("click", () => $("#copyDonate")?.click());
 
   /* ——— Boot ——— */
   async function boot() {

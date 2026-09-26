@@ -23,6 +23,7 @@ candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), an
 | [DexScreener](https://dexscreener.com) | Cardano DEX pairs, liquidity, 24h buys/sells |
 | [Koios](https://www.koios.rest) | On-chain asset info, holder counts, address/wallet balances |
 | [MinSwap aggregator](https://minswap.org) | ADA/USD reference price |
+| [NightForge](https://nightforge.jp/api/docs) | Midnight network analytics (blocks, TPS, shielded, bridge) |
 
 Responses are cached (5–30 min depending on endpoint, persisted in localStorage) and every panel
 degrades gracefully with loading skeletons and plain-language error states. No demo or placeholder
@@ -66,8 +67,21 @@ js/app.js         router + page renderers
 - NFT floor prices and LP position valuations are not currently sourced — NFTs list without prices.
 - DUST generation figures on the Midnight page are a tunable model, not network data.
 
-## Attribution
+## Custom domain (DNS)
+
+`nightdream.io` should CNAME/A to GitHub Pages — see **[docs/DNS.md](docs/DNS.md)**.
+The apex did not resolve as of 2026-09-25; the GitHub Pages URL above is the working site.
+
+## Data sources (Midnight network)
+
+NightForge public explorer API powers the **Midnight network** strip (blocks, TPS, shielded ratio, bridge ops, committee) on the Midnight page, with soft empty-state fallback.
+
+## Attribution / branding
 
 Built by [@kshot9000](https://x.com/kshot9000).
 
-Pearl donations: `prl1p62v09vuzyd8kdz9l23jaf3kph4wwx6jqcmhkkhg8lhr2qlxky8psu3zw9d`
+**Donate ADA:**
+
+```
+addr1q8hnl6vl5a6k3rw3n5g3jtte696zcl76kfatzv7gpswa9r0dj7fma6klq55y4ffm7tf0em09udnyhuk4ah92pl5x9jpqjae44v
+```

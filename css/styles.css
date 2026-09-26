@@ -599,3 +599,39 @@ canvas.chart-lg { width: 100% !important; height: 100% !important; }
 @media (max-width: 860px) {
   .footer-bar { padding: 12px; }
 }
+
+.footer-bar {
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  align-items: flex-start;
+}
+.footer-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 220px;
+}
+.footer-donate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  max-width: 100%;
+}
+.footer-donate code {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  padding: 5px 8px;
+  border-radius: 8px;
+  color: var(--text);
+  max-width: min(520px, 70vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.footer-donate code:hover { border-color: rgba(139,124,255,0.45); color: var(--accent-2); }
