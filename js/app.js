@@ -106,13 +106,19 @@
       chunk.forEach((d) => { if (d) pairs.push(...d.pairs); });
     }
     const byDex = new Map();
+    const seen = new Set();
+    const uniq = [];
     for (const p of pairs) {
+      const k = p.pairAddress || p.url || (p.pair + "|" + p.dex);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      uniq.push(p);
       const e = byDex.get(p.dex) || { name: p.dex, vol24: 0, liq: 0, pairs: 0 };
       e.vol24 += p.vol24; e.liq += p.liq; e.pairs++;
       byDex.set(p.dex, e);
     }
     dexAggCache = {
-      pairs: pairs.sort((a, b) => b.vol24 - a.vol24),
+      pairs: uniq.sort((a, b) => b.vol24 - a.vol24),
       dexes: [...byDex.values()].sort((a, b) => b.vol24 - a.vol24),
     };
     dexAggAt = Date.now();
@@ -269,16 +275,24 @@
       <tr>
         <td><button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button">★</button></td>
         <td class="rank-cell">${i + 1}</td>
-        <td><div class="token-cell" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
+        <td><div class="token-cell" data-goto="token/${t.ticker}">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
         <td>${fmt.usd(t.price, t.price < 0.01 ? 6 : 4)}</td>
         <td class="${chClass(t.ch1h)}">${fmt.pct(t.ch1h)}</td>
         <td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
         <td class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)}</td>
-        <td>${fmt.usd(t.vol)}</td>
-        <td>${fmt.usd(t.mcap)}</td>
+        <td>${t.vol ? fmt.usd(t.vol) : "—"}</td>
+        <td>${t.mcap ? fmt.usd(t.mcap) : "—"}</td>
       </tr>`).join("");
     tb.querySelectorAll("[data-star]").forEach((b) =>
       b.addEventListener("click", (e) => { e.stopPropagation(); toggleWatch(b.dataset.star); }));
+    tb.querySelectorAll("tr").forEach((tr) => {
+      tr.style.cursor = "pointer";
+      tr.addEventListener("click", (e) => {
+        if (e.target.closest("[data-star]")) return;
+        const cell = tr.querySelector("[data-goto]");
+        if (cell) location.hash = "#" + cell.dataset.goto;
+      });
+    });
   }
 
   /* ——— Token detail ——— */
@@ -379,8 +393,8 @@
       ]);
       const ts = $("#tokenStats");
       if (ts) ts.innerHTML = [
-        ["Market cap", fmt.usd(t.mcap)], ["FDV", fmt.usd(t.fdv)],
-        ["Volume 24h", fmt.usd(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
+        ["Market cap", t.mcap ? fmt.usd(t.mcap) : "—"], ["FDV", t.fdv ? fmt.usd(t.fdv) : "—"],
+        ["Volume 24h", t.vol ? fmt.usd(t.vol) : "—"], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
         ["ATL", t.atl ? fmt.usd(t.atl, 6) : "—"],
         ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
         ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],
@@ -399,8 +413,6 @@
       }
       const info = await LIVE.koiosAsset(t.policy, t.asset);
       if (currentToken !== t || !$("#tokenOnchain")) return;
-      const holders = await LIVE.koiosHolders(t.policy, t.asset);
-      if (currentToken !== t || !$("#tokenOnchain")) return;
       const meta = (info && info.token_registry_metadata) || {};
       const dec = info && info.decimals != null ? Number(info.decimals)
         : meta.decimals != null ? Number(meta.decimals) : 0;
@@ -409,7 +421,6 @@
         <div class="kv"><span>Fingerprint</span><code style="font-size:11px">${info ? info.fingerprint : "—"}</code></div>
         <div class="kv"><span>Decimals</span><span>${meta.decimals != null ? meta.decimals : "—"}</span></div>
         <div class="kv"><span>Total supply</span><span>${info ? fmt.num(Number(info.total_supply) / Math.pow(10, dec)) : "—"}</span></div>
-        <div class="kv"><span>Holders</span><span>${holders != null ? fmt.num(holders) : "—"}</span></div>
         <div class="kv"><span>Explorer</span><a href="https://cardanoscan.io/token/${t.unit}" target="_blank" rel="noopener">Cardanoscan ↗</a></div>`;
       const cp = $("#tokenOnchain [data-copy]");
       if (cp) cp.addEventListener("click", () => {
@@ -610,7 +621,7 @@
     requestAnimationFrame(() => {
       const b = $("#dexVolChart"), d = $("#dexShareChart");
       if (!b || !d) return;
-      NDCharts.drawBars(b, agg.dexes.slice(0, 8).map((x) => ({ label: x.name, pct: Math.round((x.vol24 / 1e6) * 10) / 10 })));
+      NDCharts.drawBars(b, agg.dexes.slice(0, 8).map((x) => ({ label: x.name, pct: (x.vol24 / totVol) * 100 })));
       NDCharts.drawDonut(d, agg.dexes.map((x) => ({ label: x.name, pct: (x.vol24 / totVol) * 100 })));
     });
     const colors = ["#8b7cff", "#2ee6c5", "#ffb020", "#ff6b7a", "#5b8cff", "#c084fc", "#34d399", "#94a3b8"];
@@ -745,7 +756,7 @@
 
   /* ——— Events ——— */
   function bind() {
-    window.addEventListener("hashchange", render);
+    window.addEventListener("hashchange", () => { closeCmdk(); render(); });
     $("#menuBtn")?.addEventListener("click", () => {
       $("#sidebar").classList.toggle("open");
       $("#sidebarOverlay").classList.toggle("show");

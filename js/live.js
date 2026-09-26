@@ -40,14 +40,19 @@ window.LIVE = (function () {
   async function jget(url, ttlMs, init) {
     const cached = cacheGet(url);
     if (cached !== undefined) return cached;
+    const { timeout, ...fetchInit } = init || {};
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), timeout || 20000);
     try {
-      const r = await fetch(url, init);
+      const r = await fetch(url, { ...fetchInit, signal: ctrl.signal });
       if (!r.ok) throw new Error("HTTP " + r.status);
       const j = await r.json();
       cacheSet(url, j, ttlMs);
       return j;
     } catch (e) {
       return null;
+    } finally {
+      clearTimeout(timer);
     }
   }
   async function jpost(url, body, ttlMs) {
