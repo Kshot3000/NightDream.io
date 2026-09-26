@@ -214,6 +214,85 @@ window.NDCharts = (function () {
   }
 
 
+  /* OHLC candlesticks: candles = [{t,o,h,l,c}] */
+  function drawCandles(canvas, candles, opts = {}) {
+    if (!canvas) return;
+    const dpr = window.devicePixelRatio || 1;
+    const w = canvas.clientWidth || 600;
+    const h = canvas.clientHeight || 260;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    const ctx = canvas.getContext("2d");
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    if (!candles || candles.length < 2) {
+      ctx.fillStyle = COLORS.text;
+      ctx.font = "13px Inter, system-ui, sans-serif";
+      ctx.fillText("No candle data", 16, h / 2);
+      return;
+    }
+    const data = candles.slice(-120);
+    const pad = { t: 16, r: 16, b: 28, l: 56 };
+    let min = Infinity, max = -Infinity;
+    data.forEach((c) => { min = Math.min(min, c.l); max = Math.max(max, c.h); });
+    const span = max - min || max * 0.01 || 1;
+    min -= span * 0.08; max += span * 0.08;
+    const x0 = pad.l, y0 = pad.t, cw = w - pad.l - pad.r, ch = h - pad.t - pad.b;
+    const step = cw / data.length;
+    const bw = Math.max(2, Math.min(14, step * 0.62));
+    function Y(v) { return y0 + ch * (1 - (v - min) / (max - min)); }
+    // grid
+    ctx.strokeStyle = COLORS.grid; ctx.lineWidth = 1;
+    ctx.fillStyle = COLORS.text; ctx.font = "11px Inter, system-ui, sans-serif"; ctx.textAlign = "right";
+    for (let i = 0; i <= 4; i++) {
+      const y = y0 + (ch * i) / 4;
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x0 + cw, y); ctx.stroke();
+      const val = max - ((max - min) * i) / 4;
+      ctx.fillText(formatAxis(val), x0 - 8, y + 4);
+    }
+    // candles
+    data.forEach((c, i) => {
+      const x = x0 + step * (i + 0.5);
+      const up = c.c >= c.o;
+      const col = up ? COLORS.up : COLORS.down;
+      ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x, Y(c.h)); ctx.lineTo(x, Y(c.l)); ctx.stroke();
+      const yO = Y(c.o), yC = Y(c.c);
+      const top = Math.min(yO, yC), bh = Math.max(2, Math.abs(yC - yO));
+      ctx.fillRect(x - bw / 2, top, bw, bh);
+    });
+    // time labels
+    ctx.fillStyle = COLORS.text; ctx.textAlign = "center";
+    const every = Math.ceil(data.length / 6);
+    data.forEach((c, i) => {
+      if (i % every) return;
+      const d = new Date(c.t);
+      ctx.fillText(d.toLocaleDateString(undefined, { month: "numeric", day: "numeric" }), x0 + step * (i + 0.5), h - 8);
+    });
+    // hover
+    if (opts.crosshair !== false) {
+      canvas.onmousemove = (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const idx = Math.floor(((e.clientX - rect.left) - x0) / step);
+        if (idx < 0 || idx >= data.length) return;
+        drawCandles(canvas, candles, { ...opts, _hover: idx, crosshair: true });
+        if (opts.onHover) opts.onHover(data[idx]);
+      };
+      canvas.onmouseleave = () => {
+        drawCandles(canvas, candles, { ...opts, _hover: null, crosshair: true });
+        if (opts.onHover) opts.onHover(null);
+      };
+    }
+    if (opts._hover != null && data[opts._hover]) {
+      const c = data[opts._hover];
+      const x = x0 + step * (opts._hover + 0.5);
+      ctx.strokeStyle = "rgba(255,255,255,0.25)";
+      ctx.setLineDash([4, 4]);
+      ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y0 + ch); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
   function drawSparkline(canvas, series, up) {
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
@@ -242,5 +321,5 @@ window.NDCharts = (function () {
     ctx.stroke();
   }
 
-  return { drawLineChart, drawBars, drawDonut, drawSparkline, sliceRange, COLORS };
+  return { drawLineChart, drawBars, drawDonut, drawSparkline, drawCandles, sliceRange, COLORS };
 })();

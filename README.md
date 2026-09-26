@@ -1,47 +1,73 @@
-# NightDream.io
+# NightDream.io — Cardano + Midnight Analytics Desk
 
-Cardano + Midnight analytics desk — built to fill the TapTools gap and beat [Sundae Float](https://float.sundae.fi) on daily usefulness.
+Live Cardano market analytics in the spirit of the late TapTools: token screener, token deep-dives with
+candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), and a Midnight (NIGHT/DUST) desk.
 
-**Live:** https://kshot3000.github.io/NightDream.io/
+**Live site:** https://kshot3000.github.io/NightDream.io/
 
-> **DEMO data** — figures are realistic sample datasets, clearly labeled. Live Cardano/Midnight APIs are not wired yet.
+## What it does
 
-## Why NightDream
+- **Overview** — live ADA + NIGHT pulse, price charts, top movers, trending by volume, liquidity snapshot, portfolio mini
+- **Markets** — sortable/filterable screener over ~85 Cardano assets (search by ticker, name, policy ID, or asset unit)
+- **Token pages** — live price, line/candle charts (24H/7D/30D/1Y), market stats, buys-vs-sells, DEX markets table, on-chain data (policy ID, fingerprint, decimals, supply, holder count), project links, description
+- **Portfolio** — connect Nami / Eternl / Lace / Flint / Vespr (any CIP-30 wallet) for a live read-only portfolio: net worth, allocation, positions, NFTs, on-chain activity; or track any `addr1…`/`stake1…` address without connecting
+- **DEX analytics** — 24h volume aggregated from DexScreener across tracked tokens, per-DEX share, top pairs table
+- **Midnight desk** — live NIGHT stats + chart, DUST generation model calculator, Cardano ↔ Midnight bridge explainer
+- **Watchlist + ⌘K command palette** — persisted locally
 
-| Capability | Float | TapTools (down) | NightDream |
-|---|---|---|---|
-| Token markets + charts + trades | ✓ | ✓ | ✓ (+sparklines, asset id search) |
-| Portfolio (multi-wallet, LP, P&L) | — | ✓ | ✓ DEMO |
-| Holder concentration | — | partial | ✓ |
-| Wallet-size / smart-money trade tags | — | cues | ✓ |
-| News aggregator | — | ✓ | ✓ |
-| Midnight NIGHT / DUST hub | — | — | ✓ |
-| Watchlist (localStorage) | saved | ✓ | ✓ |
-| ⌘K command palette | — | — | ✓ |
+## Data sources (all keyless, no backend)
 
-## Sections
+| Source | Used for |
+|---|---|
+| [CoinGecko](https://www.coingecko.com) | Prices, mcap, volume, % changes, sparklines, charts, OHLC candles, token metadata |
+| [DexScreener](https://dexscreener.com) | Cardano DEX pairs, liquidity, 24h buys/sells |
+| [Koios](https://www.koios.rest) | On-chain asset info, holder counts, address/wallet balances |
+| [MinSwap aggregator](https://minswap.org) | ADA/USD reference price |
 
-1. **Overview** — morning desk (ADA + NIGHT pulse, movers, trending, liquidity, news strip, portfolio mini, watchlist)
-2. **Markets** — Tokens / Pools / Exchanges / Trades tabs (Float baseline + denser columns)
-3. **Token** — deep page (`#token/SUNDAE`) with Chart, Trades (expandable + fish badges), Pools, Holders, About
-4. **Portfolio** — multi-wallet demo, allocation, tokens/NFTs/LP, trade history, best/worst
-5. **DEX / Liquidity** — volume share + pool table
-6. **News** — Cardano + Midnight tagged headlines
-7. **Midnight** — NIGHT overview, DUST calculator (5 DUST max / NIGHT), stake status checker, bridge model
-8. **Watchlist** — persisted favorites
+Responses are cached (5–30 min depending on endpoint, persisted in localStorage) and every panel
+degrades gracefully with loading skeletons and plain-language error states. No demo or placeholder
+figures are shown anywhere.
 
-## Stack
+## Privacy
 
-Static SPA — HTML / CSS / vanilla JS. No build step. GitHub Pages from `main` root. Relative paths (`./css/...`) for `/NightDream.io/` base.
+- Wallet connection is **read-only** via CIP-30 (`enable()` only requests address access). Nothing is ever signed.
+- Balances resolve through your wallet's public addresses via Koios. No keys, no seeds, no tracking.
+- Watchlist and tracked addresses stay in your browser's localStorage.
 
-## Local
-
-Open `index.html` or serve the folder:
+## Run locally
 
 ```bash
-python3 -m http.server 8080 --directory .
+git clone https://github.com/Kshot3000/NightDream.io
+cd NightDream.io
+python3 -m http.server 8000
+# open http://localhost:8000/
 ```
 
-## License
+No build step — static HTML/CSS/JS, deployable to any static host (GitHub Pages serves `main`).
 
-MIT © NightDream / Kshot3000
+## Project layout
+
+```
+index.html        app shell + all pages
+css/styles.css    dark purple/teal theme
+js/tokens.js      curated Cardano token universe (CoinGecko IDs + on-chain policy IDs)
+js/live.js        cached data layer (CoinGecko / DexScreener / Koios / MinSwap)
+js/data.js        shared state + formatters
+js/wallet.js      CIP-30 discovery, bech32, Koios-backed portfolio builder
+js/charts.js      canvas charts (line, candles, bars, donut, sparklines)
+js/app.js         router + page renderers
+```
+
+## Limitations
+
+- CoinGecko's free tier rate-limits aggressively; the app caches heavily and backs off, but very rapid
+  refreshing may briefly show stale data (the freshness pill always shows data age).
+- Holder counts come from Koios `asset_addresses` and can be slow on first load for large assets.
+- NFT floor prices and LP position valuations are not currently sourced — NFTs list without prices.
+- DUST generation figures on the Midnight page are a tunable model, not network data.
+
+## Attribution
+
+Built by [@kshot9000](https://x.com/kshot9000).
+
+Pearl donations: `prl1p62v09vuzyd8kdz9l23jaf3kph4wwx6jqcmhkkhg8lhr2qlxky8psu3zw9d`

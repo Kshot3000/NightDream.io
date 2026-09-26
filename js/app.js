@@ -1,630 +1,685 @@
-/* NightDream.io — SPA router + views */
+/* NightDream — app shell. All market data is LIVE (CoinGecko/DexScreener/Koios).
+   Boot paints skeletons, loads the token universe, then renders for real. */
 (function () {
-  const $ = (s, r = document) => r.querySelector(s);
-  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
   const fmt = ND.fmt;
-  const WATCH_KEY = "nightdream.watchlist.v2";
+  const chClass = (n) => (n > 0 ? "up" : n < 0 ? "down" : "flat");
+  const watch = new Set(JSON.parse(localStorage.getItem("nd.watch") || "[]"));
+  const chartRanges = { ADA: "30D", NIGHT: "30D", TOKEN: "7D" };
+  let chartType = "line"; // line | candle
+  let marketSort = { key: "mcap", dir: -1 };
+  let currentToken = null;
+  let currentRoute = "overview";
+  let dexAggCache = null, dexAggAt = 0;
 
-  /* ——— Watchlist persistence ——— */
-  function loadWatch() {
-    try {
-      const raw = localStorage.getItem(WATCH_KEY);
-      if (raw) return new Set(JSON.parse(raw));
-    } catch (_) {}
-    return new Set(ND.TOKENS.filter((t) => t.watch).map((t) => t.id));
-  }
-  function saveWatch(set) {
-    localStorage.setItem(WATCH_KEY, JSON.stringify([...set]));
-  }
-  let watch = loadWatch();
-  function isWatched(id) { return watch.has(id); }
+  function saveWatch() { localStorage.setItem("nd.watch", JSON.stringify([...watch])); }
   function toggleWatch(id) {
     if (watch.has(id)) watch.delete(id); else watch.add(id);
-    saveWatch(watch);
-    toast(watch.has(id) ? `★ Added ${id} to watchlist` : `Removed ${id}`);
-    refreshWatchDependent();
+    saveWatch();
+    $$(`[data-star="${CSS.escape(id)}"]`).forEach((b) => b.classList.toggle("on", watch.has(id)));
+    if (currentRoute === "watchlist") renderWatchlist();
+    if (currentRoute === "overview") renderWatchPanel();
   }
 
-  /* ——— Toast ——— */
   function toast(msg) {
-    const host = $("#toastHost");
-    const el = document.createElement("div");
-    el.className = "toast";
-    el.textContent = msg;
-    host.appendChild(el);
-    setTimeout(() => el.remove(), 2800);
+    const host = $("#toastHost") || document.body;
+    const t = document.createElement("div");
+    t.className = "toast";
+    t.textContent = msg;
+    host.appendChild(t);
+    setTimeout(() => t.remove(), 2800);
   }
 
-  /* ——— Routing ——— */
-  let currentTokenId = "SUNDAE";
-  let chartRanges = { ADA: "7D", NIGHT: "7D", token: "7D" };
-  let marketSort = { key: "vol", dir: -1 };
+  function freshLabel() {
+    if (!ND._marketsAt) return "connecting…";
+    const s = Math.floor((Date.now() - ND._marketsAt) / 1000);
+    if (s < 60) return `live · ${s}s ago`;
+    return `live · ${Math.floor(s / 60)}m ago`;
+  }
+  function paintFresh() {
+    const label = freshLabel();
+    const df = $("#dataFresh");
+    if (df) df.innerHTML = `<span class="pulse"></span> ${label}`;
+    const mf = $("#marketsFresh");
+    if (mf) mf.textContent = label;
+    const lu = $("#lastUpdated");
+    if (lu) lu.textContent = ND._marketsAt ? "Updated " + fmt.timeAgo(ND._marketsAt) : "";
+  }
 
+  /* token icon: CoinGecko image with letter fallback */
+  function icon(t, sm) {
+    const cls = "token-avatar" + (sm ? " sm" : "");
+    const tick = (t && t.ticker ? t.ticker : "?").replace(/'/g, "");
+    if (t && t.image) {
+      return `<img class="${cls}" src="${t.image}" alt="" loading="lazy" onerror="this.outerHTML=window.ND.__fbIcon('${tick}','${cls}')">`;
+    }
+    return window.ND.__fbIcon(tick, cls);
+  }
+  ND.__fbIcon = (ticker, cls) => {
+    const ch = String(ticker || "?").replace(/^\$/, "").charAt(0).toUpperCase() || "?";
+    return `<span class="${cls}">${ch}</span>`;
+  };
+
+  const skel = (n, h) => Array.from({ length: n }).map(() =>
+    `<div class="skel" style="height:${h || 14}px;margin:8px 0"></div>`).join("");
+  const skelCards = (n) => Array.from({ length: n }).map(() =>
+    `<div class="stat-card"><div class="skel" style="height:11px;width:55%"></div><div class="skel" style="height:22px;width:75%;margin-top:10px"></div><div class="skel" style="height:11px;width:45%;margin-top:8px"></div></div>`).join("");
+
+  /* ——— Router ——— */
   function parseHash() {
-    const h = (location.hash || "#overview").slice(1);
-    const [route, ...rest] = h.split("/");
-    return { route: route || "overview", param: rest.join("/") || null };
+    const h = (location.hash || "#overview").replace(/^#/, "");
+    const i = h.indexOf("/");
+    return i < 0 ? { route: h || "overview", param: null }
+      : { route: h.slice(0, i), param: decodeURIComponent(h.slice(i + 1)) };
   }
-
   function navigate(hash) {
-    if (location.hash !== hash) location.hash = hash;
-    else render();
+    if (location.hash === hash) render();
+    else location.hash = hash;
   }
-
-  function setActiveNav(route) {
-    $$(".nav-item").forEach((a) => {
-      const r = a.dataset.route;
-      a.classList.toggle("active", r === route || (route === "token" && r === "token"));
-    });
-  }
-
-  function showSection(name) {
-    $$(".section").forEach((s) => s.classList.toggle("visible", s.dataset.section === name));
-  }
+  const ROUTES = ["overview", "markets", "token", "portfolio", "dex", "midnight", "watchlist"];
 
   function render() {
     const { route, param } = parseHash();
-    const map = {
-      overview: "overview",
-      markets: "markets",
-      token: "token",
-      portfolio: "portfolio",
-      dex: "dex",
-      news: "news",
-      midnight: "midnight",
-      watchlist: "watchlist",
-    };
-    const sec = map[route] || "overview";
-    setActiveNav(sec === "token" ? "token" : sec);
-    showSection(sec);
+    currentRoute = ROUTES.includes(route) ? route : "overview";
     closeSidebar();
+    $$(".section").forEach((p) => p.classList.toggle("visible", p.dataset.section === currentRoute));
+    $$("[data-route]").forEach((a) => a.classList.toggle("active", a.dataset.route === currentRoute));
+    document.title = "NightDream.io — " + currentRoute.charAt(0).toUpperCase() + currentRoute.slice(1);
+    if (currentRoute === "overview") renderOverview();
+    if (currentRoute === "markets") renderMarkets();
+    if (currentRoute === "token") renderToken(param);
+    if (currentRoute === "portfolio") WALLET_UI.render();
+    if (currentRoute === "dex") renderDex();
+    if (currentRoute === "midnight") renderMidnight();
+    if (currentRoute === "watchlist") renderWatchlist();
+  }
 
-    if (sec === "overview") renderOverview();
-    if (sec === "markets") renderMarkets();
-    if (sec === "token") {
-      currentTokenId = (param || "SUNDAE").toUpperCase();
-      if (!ND.getToken(currentTokenId)) currentTokenId = "SUNDAE";
-      renderToken(currentTokenId);
+  /* ——— Shared DEX aggregation (top tracked tokens → pairs) ——— */
+  async function getDexAgg() {
+    if (dexAggCache && Date.now() - dexAggAt < 10 * 60 * 1000) return dexAggCache;
+    const top = [...ND.TOKENS].filter((t) => t.unit && t.unit !== "lovelace")
+      .sort((a, b) => (b.mcap || 0) - (a.mcap || 0)).slice(0, 12);
+    const pairs = [];
+    for (let i = 0; i < top.length; i += 4) {
+      const chunk = await Promise.all(top.slice(i, i + 4).map((t) => LIVE.dexPairs(t.unit)));
+      chunk.forEach((d) => { if (d) pairs.push(...d.pairs); });
     }
-    if (sec === "portfolio") renderPortfolio();
-    if (sec === "dex") renderDex();
-    if (sec === "news") renderNews();
-    if (sec === "midnight") renderMidnight();
-    if (sec === "watchlist") renderWatchlist();
-  }
-
-  function refreshWatchDependent() {
-    const { route } = parseHash();
-    if (route === "markets") renderMarkets();
-    if (route === "watchlist") renderWatchlist();
-    if (route === "overview") renderOverview();
-    if (route === "token") renderToken(currentTokenId);
-  }
-
-  /* ——— Helpers ——— */
-  function avatar(ticker, cls = "") {
-    return `<div class="token-avatar ${cls}">${(ticker || "?").slice(0, 3)}</div>`;
-  }
-  function chClass(n) { return n >= 0 ? "up" : "down"; }
-  function fishBadge(w) {
-    const smart = w === "whale" ? '<span class="smart-tag">SMART</span>' : "";
-    return `<span class="fish-badge ${w}">${w}</span>${smart}`;
-  }
-  function tokenLink(id) {
-    return `<a href="#token/${id}">${id}</a>`;
+    const byDex = new Map();
+    for (const p of pairs) {
+      const e = byDex.get(p.dex) || { name: p.dex, vol24: 0, liq: 0, pairs: 0 };
+      e.vol24 += p.vol24; e.liq += p.liq; e.pairs++;
+      byDex.set(p.dex, e);
+    }
+    dexAggCache = {
+      pairs: pairs.sort((a, b) => b.vol24 - a.vol24),
+      dexes: [...byDex.values()].sort((a, b) => b.vol24 - a.vol24),
+    };
+    dexAggAt = Date.now();
+    return dexAggCache;
   }
 
   /* ——— Overview ——— */
-  function renderOverview() {
-    const ada = ND.PULSE.ada, night = ND.PULSE.night;
-    $("#lastUpdated").innerHTML = `<span class="freshness"><span class="pulse"></span> Updated ${fmt.timeAgo(ND.META.updatedAt)} · <span class="badge-demo">DEMO</span></span>`;
-    $("#overviewStats").innerHTML = [
-      { label: "ADA", value: fmt.usd(ada.price, 3), sub: fmt.pct(ada.change24h), ch: ada.change24h },
-      { label: "NIGHT", value: fmt.usd(night.price, 4), sub: fmt.pct(night.change24h), ch: night.change24h },
-      { label: "ADA vol 24h", value: fmt.usd(ada.volume24h), sub: "Cardano", ch: 1 },
-      { label: "NIGHT mcap", value: fmt.usd(night.mcap), sub: "FDV " + fmt.usd(night.fdv), ch: 1 },
-      { label: "DEX vol 24h", value: fmt.usd(ND.DEXES.reduce((s, d) => s + d.vol24, 0)), sub: "All DEXes", ch: 1 },
-      { label: "Portfolio", value: fmt.usd(51240), sub: "Demo wallet", ch: 1 },
-    ].map((s) => `
-      <div class="stat-card">
-        <div class="stat-label">${s.label} <span class="badge-demo">DEMO</span></div>
-        <div class="stat-value">${s.value}</div>
-        <div class="stat-sub ${chClass(s.ch)}">${s.sub}</div>
+  async function renderOverview() {
+    const T = ND.TOKENS;
+    if (!T.length) {
+      $("#overviewStats").innerHTML = skelCards(8);
+      $("#ovMovers").innerHTML = skel(6);
+      $("#ovTrending").innerHTML = skel(5);
+      $("#ovWatch").innerHTML = skel(3);
+      return;
+    }
+    const ada = ND.getToken("ADA");
+    const night = T.find((t) => t.cg === "midnight-3");
+    const card = (t, extra) => t ? `
+      <div class="stat-card"><div class="stat-label">${t.ticker} · ${extra[0]}</div>
+      <div class="stat-value">${extra[1]}</div>
+      <div class="stat-sub ${chClass(extra[3])}">${extra[2]}</div></div>` : "";
+    const c24 = (t) => [ "price", fmt.usd(t.price, t.price < 1 ? 4 : 2), fmt.pct(t.ch24) + " 24h", t.ch24 ];
+    $("#overviewStats").innerHTML =
+      card(ada, c24(ada)) +
+      (ada ? `<div class="stat-card"><div class="stat-label">ADA · mcap</div><div class="stat-value">${fmt.usd(ada.mcap)}</div><div class="stat-sub">${ada.rank ? "Rank #" + ada.rank : ""}</div></div>
+      <div class="stat-card"><div class="stat-label">ADA · vol 24h</div><div class="stat-value">${fmt.usd(ada.vol)}</div><div class="stat-sub ${chClass(ada.ch7d)}">${fmt.pct(ada.ch7d)} 7d</div></div>
+      <div class="stat-card"><div class="stat-label">Tracked assets</div><div class="stat-value">${T.length}</div><div class="stat-sub">CoinGecko universe</div></div>` : "") +
+      card(night, c24(night)) +
+      (night ? `<div class="stat-card"><div class="stat-label">NIGHT · mcap</div><div class="stat-value">${fmt.usd(night.mcap)}</div><div class="stat-sub">${night.rank ? "Rank #" + night.rank : ""}</div></div>
+      <div class="stat-card"><div class="stat-label">NIGHT · vol 24h</div><div class="stat-value">${fmt.usd(night.vol)}</div><div class="stat-sub ${chClass(night.ch7d)}">${fmt.pct(night.ch7d)} 7d</div></div>
+      <div class="stat-card"><div class="stat-label">NIGHT · ATH</div><div class="stat-value">${night.ath ? fmt.usd(night.ath, 4) : "—"}</div><div class="stat-sub"><a href="#midnight">Midnight desk →</a></div></div>` : "");
+    paintFresh();
+    drawOverviewChart("ADA", chartRanges.ADA);
+    drawOverviewChart("NIGHT", chartRanges.NIGHT);
+
+    const gainers = [...T].filter((t) => (t.ch24 || 0) > 0).sort((a, b) => b.ch24 - a.ch24).slice(0, 5);
+    const losers = [...T].filter((t) => (t.ch24 || 0) < 0).sort((a, b) => a.ch24 - b.ch24).slice(0, 5);
+    $("#ovMovers").innerHTML = [...gainers, ...losers].map((t) => `
+      <div class="list-row" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">
+        <div class="token-cell">${icon(t, 1)}<strong>${t.ticker}</strong></div>
+        <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</span>
       </div>`).join("");
-
-    $("#overviewNews").innerHTML = ND.NEWS.slice(0, 6).map((n) => `
-      <a class="news-chip" href="#news">
-        <div class="src">${n.source} · ${n.tag}</div>
-        <div class="ttl">${n.title}</div>
-        <div class="when">${fmt.timeAgo(n.ts)}</div>
-      </a>`).join("");
-
-    const movers = ND.TOP_MOVERS.map((id) => ND.getToken(id)).filter(Boolean);
-    $("#ovMovers").innerHTML = movers.map((t) => `
-      <div class="list-row" onclick="location.hash='#token/${t.id}'">
-        <div class="token-cell">${avatar(t.ticker, "sm")}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div>
-        <div class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</div>
+    const trending = [...T].filter((t) => t.ticker !== "ADA").sort((a, b) => (b.vol || 0) - (a.vol || 0)).slice(0, 5);
+    $("#ovTrending").innerHTML = trending.map((t) => `
+      <div class="list-row" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">
+        <div class="token-cell">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div>
+        <div style="text-align:right"><div>${fmt.usd(t.price, 6)}</div><div class="${chClass(t.ch24)}" style="font-size:12px">${fmt.pct(t.ch24)}</div></div>
       </div>`).join("");
+    renderWatchPanel();
+    renderPfMiniPanel();
 
-    $("#ovTrending").innerHTML = ND.TRENDING.map((id) => ND.getToken(id)).filter(Boolean).map((t) => `
-      <div class="list-row" onclick="location.hash='#token/${t.id}'">
-        <div class="token-cell">${avatar(t.ticker, "sm")}<strong>${t.ticker}</strong></div>
-        <div>${fmt.usd(t.price, 4)}</div>
-      </div>`).join("");
-
-    const wl = [...watch].map((id) => ND.getToken(id)).filter(Boolean).slice(0, 6);
-    $("#ovWatch").innerHTML = wl.length ? wl.map((t) => `
-      <div class="list-row" onclick="location.hash='#token/${t.id}'">
-        <div class="token-cell">${avatar(t.ticker, "sm")}<strong>${t.ticker}</strong></div>
-        <div class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</div>
-      </div>`).join("") : `<div class="empty" style="padding:16px"><strong>Empty</strong>Star tokens in Markets</div>`;
-
-    const tb = $("#ovPools tbody");
-    tb.innerHTML = ND.POOLS.slice(0, 5).map((p) => `
-      <tr><td>${p.pair}</td><td>${p.dex}</td><td>${fmt.usd(p.tvl)}</td><td>${fmt.usd(p.vol24)}</td></tr>`).join("");
-
-    const pf = ND.PORTFOLIO;
-    $("#ovPortfolio").innerHTML = `
-      <div class="stat-value" style="margin-bottom:8px">${fmt.usd(51240)}</div>
-      <div class="muted" style="font-size:12px;margin-bottom:10px">Best ${pf.best.id} ${fmt.pct(pf.best.pnlPct)} · Worst ${pf.worst.id} ${fmt.pct(pf.worst.pnlPct)}</div>
-      ${pf.allocation.slice(0, 5).map((a) => `
-        <div class="list-row"><span>${a.id}</span><span>${a.pct}% · ${fmt.usd(a.value)}</span></div>`).join("")}`;
-
-    requestAnimationFrame(() => {
-      NDCharts.drawLineChart($("#ovAdaChart"), ND.CHARTS.ADA, { range: chartRanges.ADA });
-      NDCharts.drawLineChart($("#ovNightChart"), ND.CHARTS.NIGHT, { range: chartRanges.NIGHT, color: "#2ee6c5", fill: "rgba(46,230,197,0.12)" });
+    // liquidity snapshot
+    $("#ovPools").querySelector("tbody").innerHTML = `<tr><td colspan="4">${skel(4)}</td></tr>`;
+    getDexAgg().then((agg) => {
+      if (currentRoute !== "overview") return;
+      const rows = agg.pairs.slice(0, 5);
+      $("#ovPools").querySelector("tbody").innerHTML = rows.map((p) => `
+        <tr><td><strong>${p.pair}</strong></td><td>${p.dex}</td><td>${fmt.usd(p.liq)}</td><td>${fmt.usd(p.vol24)}</td></tr>`).join("")
+        || `<tr><td colspan="4" class="muted">No pair data.</td></tr>`;
     });
+  }
+
+  async function drawOverviewChart(which, range) {
+    const cg = which === "ADA" ? "cardano" : "midnight-3";
+    const cv = which === "ADA" ? $("#ovAdaChart") : $("#ovNightChart");
+    if (!cv) return;
+    const days = range === "24H" ? 1 : range === "7D" ? 7 : 30;
+    const series = await LIVE.chart(cg, days);
+    if (!series || currentRoute !== "overview") return;
+    const opts = which === "NIGHT"
+      ? { range, color: "#2ee6c5", fill: "rgba(46,230,197,0.10)" }
+      : { range };
+    NDCharts.drawLineChart(cv, series, opts);
+  }
+
+  function renderWatchPanel() {
+    const el = $("#ovWatch");
+    if (!el) return;
+    const items = [...watch].map((id) => ND.getToken(id)).filter(Boolean).slice(0, 6);
+    el.innerHTML = items.length ? items.map((t) => `
+      <div class="list-row" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">
+        <div class="token-cell">${icon(t, 1)}<strong>${t.ticker}</strong>
+          <button class="star-btn on" data-star="${t.ticker}" type="button" onclick="event.stopPropagation()">★</button></div>
+        <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</span>
+      </div>`).join("")
+      : `<div class="empty" style="padding:20px"><strong>No favorites yet</strong>Star tokens from Markets.</div>`;
+    el.querySelectorAll("[data-star]").forEach((b) =>
+      b.addEventListener("click", (e) => { e.stopPropagation(); toggleWatch(b.dataset.star); }));
+  }
+
+  function renderPfMiniPanel() {
+    const el = $("#ovPortfolio");
+    if (!el) return;
+    const s = WALLET.state;
+    if (s.connected && s.positions.length) {
+      el.innerHTML = `
+        <div class="pf-mini-worth">${fmt.usd(s.totalUsd)}<span class="muted"> net worth</span></div>
+        ${s.positions.slice(0, 3).map((p) => `
+          <div class="list-row"><div class="token-cell">${icon({ ticker: p.ticker, image: p.image }, 1)}<strong>${p.ticker}</strong></div>
+          <span>${fmt.usd(p.value)}</span></div>`).join("")}
+        <a class="btn btn-sm btn-ghost" href="#portfolio" style="margin-top:8px">Open portfolio</a>`;
+    } else {
+      el.innerHTML = `<p class="muted" style="font-size:13px;margin:0 0 10px">Connect a Cardano wallet to see your live net worth here.</p>
+        <a class="btn btn-sm" href="#portfolio">Connect wallet</a>`;
+    }
   }
 
   /* ——— Markets ——— */
-  function renderMarkets() {
-    renderMarketTokens();
-    // pools
-    $("#marketsPoolsTable tbody").innerHTML = ND.POOLS.map((p) => `
-      <tr><td><strong>${p.pair}</strong></td><td>${p.dex}</td><td>${fmt.usd(p.tvl)}</td><td>${fmt.usd(p.vol24)}</td><td class="up">${p.apr}%</td><td>${p.fee}</td></tr>`).join("");
-    // exchanges
-    $("#marketsExTable tbody").innerHTML = ND.DEXES.map((d, i) => `
-      <tr><td class="rank-cell">${i + 1}</td><td><strong>${d.name}</strong></td><td>${fmt.usd(d.vol24)}</td><td>${d.pools}</td><td>${d.share}%</td></tr>`).join("");
-    // trades with wallet badges
-    $("#marketsTradesTable tbody").innerHTML = ND.GLOBAL_TRADES.map((t) => `
-      <tr onclick="location.hash='#token/${t.token}'">
-        <td>${t.ago}</td>
-        <td><strong>${t.token}</strong></td>
-        <td class="trade-side ${t.side}">${t.side}</td>
-        <td>${fmt.usd(t.price, 6)}</td>
-        <td>${fmt.num(t.amount)}</td>
-        <td>${fmt.usd(t.ada)}</td>
-        <td>${fishBadge(t.wallet)}</td>
-        <td>${t.dex}</td>
-      </tr>`).join("");
+  function marketCats() {
+    return [...new Set(ND.TOKENS.map((t) => t.category))].sort();
   }
-
   function filteredMarketTokens() {
-    const q = ($("#marketSearch")?.value || "").trim().toLowerCase();
+    const q = ($("#marketSearch")?.value || "").toLowerCase().trim();
     const cat = $("#marketCat")?.value || "";
-    const liqMin = Number($("#liqMin")?.value || 0);
-    const watchOnly = $("#watchOnly")?.checked;
-    let rows = ND.TOKENS.filter((t) => t.id !== "DUST");
-    if (q) {
-      rows = rows.filter((t) =>
-        t.ticker.toLowerCase().includes(q) ||
-        t.name.toLowerCase().includes(q) ||
-        (t.assetId || "").toLowerCase().includes(q) ||
-        (t.policy || "").toLowerCase().includes(q)
-      );
-    }
-    if (cat) rows = rows.filter((t) => t.category === cat);
-    if (liqMin > 0) rows = rows.filter((t) => t.liq >= liqMin);
-    if (watchOnly) rows = rows.filter((t) => isWatched(t.id));
+    const tab = $("#marketTabs .tab.active")?.dataset.mtab || "all";
+    const onlyWatch = $("#watchOnly")?.checked;
+    let list = ND.TOKENS.filter((t) => t.ticker !== "ADA");
+    if (tab !== "all") list = list.filter((t) => t.category === tab);
+    if (cat) list = list.filter((t) => t.category === cat);
+    if (onlyWatch) list = list.filter((t) => watch.has(t.ticker));
+    if (q) list = list.filter((t) =>
+      t.ticker.toLowerCase().includes(q) || t.name.toLowerCase().includes(q) ||
+      (t.policy && t.policy.includes(q)) || (t.unit && t.unit.includes(q)));
     const { key, dir } = marketSort;
-    rows.sort((a, b) => {
-      let av = a[key], bv = b[key];
-      if (key === "watch") { av = isWatched(a.id) ? 1 : 0; bv = isWatched(b.id) ? 1 : 0; }
-      if (key === "rank") return 0;
-      if (typeof av === "string") return av.localeCompare(bv) * dir;
-      return ((av || 0) - (bv || 0)) * dir;
+    list.sort((a, b) => {
+      const av = a[key], bv = b[key];
+      if (typeof av === "string") return dir * String(av).localeCompare(String(bv));
+      return dir * ((av || 0) - (bv || 0));
     });
-    return rows;
+    return list;
   }
-
+  function renderMarkets() {
+    if (!ND.TOKENS.length) {
+      $("#marketsTable").querySelector("tbody").innerHTML = `<tr><td colspan="9">${skel(8)}</td></tr>`;
+      return;
+    }
+    const sel = $("#marketCat");
+    if (sel && !sel.dataset.built) {
+      sel.dataset.built = "1";
+      sel.innerHTML = `<option value="">All categories</option>` +
+        marketCats().map((c) => `<option>${c}</option>`).join("");
+    }
+    renderMarketTokens();
+    paintFresh();
+  }
   function renderMarketTokens() {
-    const rows = filteredMarketTokens();
-    const tb = $("#marketsTable tbody");
-    tb.innerHTML = rows.map((t, i) => {
-      const up7 = t.ch7d >= 0;
-      return `<tr data-id="${t.id}">
-        <td><button class="star-btn ${isWatched(t.id) ? "on" : ""}" data-star="${t.id}" type="button">${isWatched(t.id) ? "★" : "☆"}</button></td>
+    const tb = $("#marketsTable").querySelector("tbody");
+    if (!tb) return;
+    const list = filteredMarketTokens();
+    const mc = $("#marketCount");
+    if (mc) mc.textContent = `${list.length} assets`;
+    tb.innerHTML = list.map((t, i) => `
+      <tr>
+        <td><button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button">★</button></td>
         <td class="rank-cell">${i + 1}</td>
-        <td><div class="token-cell">${avatar(t.ticker)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
-        <td>${fmt.usd(t.price, 6)}</td>
+        <td><div class="token-cell" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
+        <td>${fmt.usd(t.price, t.price < 0.01 ? 6 : 4)}</td>
+        <td class="${chClass(t.ch1h)}">${fmt.pct(t.ch1h)}</td>
         <td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
         <td class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)}</td>
-        <td><span class="spark"><canvas class="spark-c" data-spark="${t.id}" data-up="${up7}"></canvas></span></td>
         <td>${fmt.usd(t.vol)}</td>
-        <td>${fmt.usd(t.liq)}</td>
-        <td>${fmt.usd(t.fdv)}</td>
-        <td>${fmt.num(t.holders)}</td>
-        <td>${t.pools || 0}</td>
-        <td>${fmt.num(t.trades24 || 0)}</td>
-      </tr>`;
-    }).join("");
-
-    tb.querySelectorAll("tr").forEach((tr) => {
-      tr.addEventListener("click", (e) => {
-        if (e.target.closest("[data-star]")) return;
-        navigate("#token/" + tr.dataset.id);
-      });
-    });
-    tb.querySelectorAll("[data-star]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        toggleWatch(btn.dataset.star);
-      });
-    });
-
-    requestAnimationFrame(() => {
-      $$(".spark-c", tb).forEach((c) => {
-        const series = ND.CHARTS[c.dataset.spark] || ND.genSeries(1, 40, 0.03, c.dataset.spark.length * 13);
-        NDCharts.drawSparkline(c, series, c.dataset.up === "true");
-      });
-    });
+        <td>${fmt.usd(t.mcap)}</td>
+      </tr>`).join("");
+    tb.querySelectorAll("[data-star]").forEach((b) =>
+      b.addEventListener("click", (e) => { e.stopPropagation(); toggleWatch(b.dataset.star); }));
   }
 
-  /* ——— Token deep page ——— */
-  let tokenTab = "chart";
-  function renderToken(id) {
-    const t = ND.getToken(id);
-    if (!t) return;
-    const series = ND.CHARTS[id] || ND.genSeries(t.price, 168, 0.03, id.length * 17);
-    const trades = ND.TRADES[id] || ND.TRADES.SUNDAE;
-    const holders = ND.HOLDERS[id] || ND.HOLDERS.default;
-    const pools = ND.POOLS.filter((p) => p.pair.includes(t.ticker) || p.pair.includes(id));
-
-    const root = $("#tokenPage");
-    root.innerHTML = `
+  /* ——— Token detail ——— */
+  async function renderToken(id) {
+    const t = ND.getToken(id) || ND.TOKENS.find((x) => x.cg === String(id || "").toLowerCase());
+    const host = $("#tokenPage");
+    if (!t) {
+      host.innerHTML = `<div class="empty" style="padding:60px 20px"><strong>Token not found</strong><a href="#markets">Back to markets</a></div>`;
+      return;
+    }
+    currentToken = t;
+    host.innerHTML = `
       <div class="token-banner">
-        <div class="big-avatar">${t.ticker.slice(0, 3)}</div>
-        <div style="flex:1;min-width:180px">
-          <h1>${t.name} <span class="muted" style="font-weight:500;font-size:16px">${t.ticker}</span>
-            <button class="star-btn ${isWatched(t.id) ? "on" : ""}" id="tokenStar" type="button" style="font-size:18px">${isWatched(t.id) ? "★" : "☆"}</button>
-            <span class="badge-demo">DEMO</span>
-          </h1>
-          <div class="price-row">
-            <span class="price">${fmt.usd(t.price, 6)}</span>
+        <div class="big-avatar">${icon(t)}</div>
+        <div style="flex:1;min-width:200px">
+          <h1>${t.name} <button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" style="font-size:18px">★</button></h1>
+          <div class="price-row"><span class="price">${fmt.usd(t.price, t.price < 0.01 ? 6 : 4)}</span>
             <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)} 24h</span>
-            <span class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)} 7d</span>
-          </div>
-          <div class="links-row">
-            <span class="asset-id" id="copyAsset" title="Click to copy">${t.assetId || t.policy}</span>
-            <a class="link-out" href="https://cardanoscan.io/" target="_blank" rel="noopener">Cardanoscan ↗</a>
-            <a class="link-out" href="https://float.sundae.fi" target="_blank" rel="noopener">Compare Float ↗</a>
-            <a class="link-out" href="#markets">← Markets</a>
-          </div>
+            <span class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)} 7d</span></div>
+          <div class="links-row" id="tokenLinks"></div>
         </div>
-        <div class="freshness"><span class="pulse"></span> Fresh · demo</div>
+        <div><span class="tag">${t.category}</span> ${t.rank ? `<span class="muted" style="font-size:12px">Rank #${t.rank}</span>` : ""}</div>
       </div>
-      <div class="token-stats-row">
-        <div class="token-stat"><div class="lbl">Liquidity</div><div class="val">${fmt.usd(t.liq)}</div></div>
-        <div class="token-stat"><div class="lbl">Vol 24h</div><div class="val">${fmt.usd(t.vol)}</div></div>
-        <div class="token-stat"><div class="lbl">Trades 24h</div><div class="val">${fmt.num(t.trades24)}</div></div>
-        <div class="token-stat"><div class="lbl">FDV</div><div class="val">${fmt.usd(t.fdv)}</div></div>
-        <div class="token-stat"><div class="lbl">Mcap</div><div class="val">${fmt.usd(t.mcap)}</div></div>
-        <div class="token-stat"><div class="lbl">Holders</div><div class="val">${fmt.num(t.holders)}</div></div>
-        <div class="token-stat"><div class="lbl">Pools</div><div class="val">${t.pools || 0}</div></div>
-      </div>
-      <div class="tabs" id="tokenTabs">
-        <button class="tab ${tokenTab === "chart" ? "active" : ""}" data-ttab="chart" type="button">Chart</button>
-        <button class="tab ${tokenTab === "trades" ? "active" : ""}" data-ttab="trades" type="button">Trades</button>
-        <button class="tab ${tokenTab === "pools" ? "active" : ""}" data-ttab="pools" type="button">Pools</button>
-        <button class="tab ${tokenTab === "holders" ? "active" : ""}" data-ttab="holders" type="button">Holders</button>
-        <button class="tab ${tokenTab === "about" ? "active" : ""}" data-ttab="about" type="button">About</button>
-      </div>
-      <div class="tab-panel ${tokenTab === "chart" ? "active" : ""}" id="ttab-chart">
-        <div class="panel">
-          <div class="panel-head">
-            <h2>${t.ticker} chart</h2>
-            <div class="seg" id="tokenRange">
-              <button class="seg-btn" data-range="1H">1H</button>
-              <button class="seg-btn" data-range="24H">24H</button>
-              <button class="seg-btn active" data-range="7D">7D</button>
-              <button class="seg-btn" data-range="30D">30D</button>
+      <div class="token-stats-row" id="tokenStatRow"></div>
+      <div class="panel-grid">
+        <section class="panel">
+          <div class="panel-head"><h2>Price chart</h2>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div class="seg" id="chartType">
+                <button class="seg-btn ${chartType === "line" ? "active" : ""}" data-ctype="line">Line</button>
+                <button class="seg-btn ${chartType === "candle" ? "active" : ""}" data-ctype="candle">Candles</button>
+              </div>
+              <div class="seg" id="tokenRange">
+                ${["24H", "7D", "30D", "1Y"].map((r) => `<button class="seg-btn ${chartRanges.TOKEN === r ? "active" : ""}" data-range="${r}">${r}</button>`).join("")}
+              </div>
             </div>
           </div>
-          <div class="chart-wrap"><canvas id="tokenChart"></canvas></div>
-          <div class="muted" id="tokenHover" style="font-size:12px;margin-top:6px">Hover for price</div>
-        </div>
+          <div class="chart-wrap"><canvas id="tokenChart" class="chart-lg"></canvas></div>
+          <div id="hoverReadout" class="hover-readout"></div>
+        </section>
+        <section class="panel">
+          <div class="panel-head"><h2>Buys vs sells · 24h</h2><span class="muted" style="font-size:11px">DexScreener</span></div>
+          <div id="buysSells">${skel(3)}</div>
+          <div class="panel-head" style="margin-top:16px"><h2>Market stats</h2></div>
+          <div id="tokenStats">${skel(6)}</div>
+        </section>
       </div>
-      <div class="tab-panel ${tokenTab === "trades" ? "active" : ""}" id="ttab-trades">
-        <div class="panel">
-          <div class="panel-head"><h2>Trade tape</h2><span class="muted">Fish · dolphin · whale badges beat Float</span></div>
-          <div class="table-wrap">
-            <table class="data-table" id="tokenTradesTable">
-              <thead><tr><th></th><th>Side</th><th>Price</th><th>Amount</th><th>ADA</th><th>Wallet</th><th>Ago</th><th>Tx</th></tr></thead>
-              <tbody>
-                ${trades.map((tr, i) => `
-                  <tr class="expand-row" data-exp="${i}">
-                    <td>▸</td>
-                    <td class="trade-side ${tr.side}">${tr.side}</td>
-                    <td>${fmt.usd(tr.price, 6)}</td>
-                    <td>${fmt.num(tr.amount)}</td>
-                    <td>${fmt.usd(tr.ada)}</td>
-                    <td>${fishBadge(tr.wallet)}</td>
-                    <td>${tr.ago}</td>
-                    <td class="muted">${tr.tx || "—"}</td>
-                  </tr>
-                  <tr class="expand-detail" data-exp-d="${i}"><td colspan="8">
-                    <strong>Expanded trade</strong> · ${tr.side.toUpperCase()} ${fmt.num(tr.amount)} ${t.ticker} @ ${fmt.usd(tr.price, 6)}
-                    · Wallet size: <em>${tr.wallet}</em>${tr.wallet === "whale" ? " · tagged SMART MONEY (demo heuristic)" : ""}
-                    · Explorer: Cardanoscan placeholder for ${tr.tx || "tx"}
-                  </td></tr>`).join("")}
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <div class="panel" style="margin-bottom:12px">
+        <div class="panel-head"><h2>DEX markets</h2><span class="muted" style="font-size:11px">DexScreener · Cardano pairs</span></div>
+        <div class="table-wrap"><table class="data-table" id="tokenPairsTable">
+          <thead><tr><th>DEX</th><th>Pair</th><th>Price</th><th>24h</th><th>Vol 24h</th><th>Liquidity</th><th>Buys/Sells</th><th></th></tr></thead>
+          <tbody><tr><td colspan="8">${skel(4)}</td></tr></tbody></table></div>
       </div>
-      <div class="tab-panel ${tokenTab === "pools" ? "active" : ""}" id="ttab-pools">
-        <div class="panel">
-          <div class="table-wrap">
-            <table class="data-table">
-              <thead><tr><th>Pair</th><th>DEX</th><th>TVL</th><th>Vol 24h</th><th>APR</th></tr></thead>
-              <tbody>
-                ${(pools.length ? pools : ND.POOLS.slice(0, 3)).map((p) => `
-                  <tr><td>${p.pair}</td><td>${p.dex}</td><td>${fmt.usd(p.tvl)}</td><td>${fmt.usd(p.vol24)}</td><td class="up">${p.apr}%</td></tr>`).join("")}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <div class="tab-panel ${tokenTab === "holders" ? "active" : ""}" id="ttab-holders">
-        <div class="panel">
-          <div class="panel-head"><h2>Holder distribution</h2><span class="muted">Float About: not available — we show it</span></div>
-          <div class="chart-wrap sm"><canvas id="holderBars"></canvas></div>
-        </div>
-      </div>
-      <div class="tab-panel ${tokenTab === "about" ? "active" : ""}" id="ttab-about">
-        <div class="panel">
-          <h3 style="margin-top:0">${t.name}</h3>
-          <p class="muted">${t.about || ""}</p>
-          <p><span class="tag ${t.category === "Midnight" ? "midnight" : ""}">${t.category}</span></p>
-          <p class="muted" style="font-size:12px">Asset ID: <code>${t.assetId}</code></p>
-          <p class="muted" style="font-size:12px">Policy (demo): <code>${t.policy}</code></p>
-        </div>
-      </div>
-    `;
+      <div class="panel-grid equal">
+        <section class="panel"><div class="panel-head"><h2>On-chain</h2><span class="muted" style="font-size:11px">Koios</span></div><div id="tokenOnchain">${skel(5)}</div></section>
+        <section class="panel"><div class="panel-head"><h2>About</h2></div><div id="tokenAbout">${skel(4)}</div></section>
+      </div>`;
+    host.querySelector("[data-star]").addEventListener("click", (e) => toggleWatch(e.target.dataset.star));
 
-    $("#tokenStar")?.addEventListener("click", () => toggleWatch(t.id));
-    $("#copyAsset")?.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(t.assetId || t.policy);
-        toast("Asset ID copied");
-      } catch (_) { toast(t.assetId || t.policy); }
+    const statRow = (rows) => {
+      $("#tokenStatRow").innerHTML = rows.map(([k, v]) =>
+        `<div class="token-stat"><div class="lbl">${k}</div><div class="val">${v}</div></div>`).join("");
+    };
+    statRow([
+      ["Mcap", fmt.usd(t.mcap)], ["FDV", fmt.usd(t.fdv)],
+      ["Vol 24h", fmt.usd(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
+      ["ATL", t.atl ? fmt.usd(t.atl, 6) : "—"], ["Category", t.category],
+    ]);
+    paintTokenChart(t);
+
+    // detail → links, about, supplies
+    LIVE.detail(t.cg).then((d) => {
+      if (currentToken !== t || !$("#tokenPage")) return;
+      if (!d) { $("#tokenAbout").innerHTML = `<p class="muted">Description unavailable.</p>`; return; }
+      const L = d.links || {};
+      const items = [];
+      const hp = (L.homepage || []).filter(Boolean)[0];
+      if (hp) items.push(`<a class="link-out" href="${hp}" target="_blank" rel="noopener">Website ↗</a>`);
+      const ex = (L.blockchain_site || []).filter(Boolean)[0];
+      if (ex) items.push(`<a class="link-out" href="${ex}" target="_blank" rel="noopener">Explorer ↗</a>`);
+      if (L.twitter_screen_name) items.push(`<a class="link-out" href="https://x.com/${L.twitter_screen_name}" target="_blank" rel="noopener">X ↗</a>`);
+      if (L.telegram_channel_identifier && !/\s/.test(L.telegram_channel_identifier)) items.push(`<a class="link-out" href="https://t.me/${L.telegram_channel_identifier}" target="_blank" rel="noopener">Telegram ↗</a>`);
+      const tl = $("#tokenLinks");
+      if (tl) tl.innerHTML = items.join("");
+      const desc = (d.description && d.description.en || "").replace(/<[^>]*>/g, "").split(". ").slice(0, 3).join(". ");
+      const ta = $("#tokenAbout");
+      if (ta) ta.innerHTML = desc
+        ? `<p style="font-size:13px;line-height:1.6">${desc}${desc.endsWith(".") ? "" : "."}</p><p class="muted" style="font-size:11px">Source: CoinGecko</p>`
+        : `<p class="muted">No description available.</p>`;
+      const md = d.market_data || {};
+      statRow([
+        ["Mcap", fmt.usd(t.mcap)], ["FDV", fmt.usd(t.fdv)],
+        ["Vol 24h", fmt.usd(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
+        ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
+        ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],
+        ["Max supply", md.max_supply ? fmt.num(md.max_supply) : "—"],
+        ["Category", t.category],
+      ]);
+      const ts = $("#tokenStats");
+      if (ts) ts.innerHTML = [
+        ["Market cap", fmt.usd(t.mcap)], ["FDV", fmt.usd(t.fdv)],
+        ["Volume 24h", fmt.usd(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
+        ["ATL", t.atl ? fmt.usd(t.atl, 6) : "—"],
+        ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
+        ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],
+        ["Max supply", md.max_supply ? fmt.num(md.max_supply) : "—"],
+      ].map(([k, v]) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`).join("");
     });
 
-    $$("#tokenTabs .tab").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        tokenTab = btn.dataset.ttab;
-        renderToken(id);
-      });
-    });
-
-    $$(".expand-row", root).forEach((row) => {
-      row.addEventListener("click", () => {
-        const d = root.querySelector(`[data-exp-d="${row.dataset.exp}"]`);
-        d?.classList.toggle("open");
-        row.querySelector("td").textContent = d?.classList.contains("open") ? "▾" : "▸";
-      });
-    });
-
-    $$("#tokenRange .seg-btn").forEach((b) => {
-      b.addEventListener("click", () => {
-        $$("#tokenRange .seg-btn").forEach((x) => x.classList.remove("active"));
-        b.classList.add("active");
-        chartRanges.token = b.dataset.range;
-        NDCharts.drawLineChart($("#tokenChart"), series, {
-          range: chartRanges.token,
-          onHover: (pt) => {
-            $("#tokenHover").textContent = pt ? `Price ${fmt.usd(pt.v, 6)} · ${new Date(pt.t).toLocaleString()}` : "Hover for price";
-          },
-        });
-      });
-    });
-
-    requestAnimationFrame(() => {
-      if (tokenTab === "chart") {
-        NDCharts.drawLineChart($("#tokenChart"), series, {
-          range: chartRanges.token,
-          onHover: (pt) => {
-            const el = $("#tokenHover");
-            if (el) el.textContent = pt ? `Price ${fmt.usd(pt.v, 6)} · ${new Date(pt.t).toLocaleString()}` : "Hover for price";
-          },
-        });
+    // on-chain
+    (async () => {
+      const oc = $("#tokenOnchain");
+      if (!t.policy) {
+        if (oc) oc.innerHTML = `
+          <div class="kv"><span>Type</span><span>Native asset (ADA)</span></div>
+          <div class="kv"><span>Explorer</span><a href="https://cardanoscan.io" target="_blank" rel="noopener">Cardanoscan ↗</a></div>`;
+        return;
       }
-      if (tokenTab === "holders") {
-        NDCharts.drawBars($("#holderBars"), holders);
+      const info = await LIVE.koiosAsset(t.policy, t.asset);
+      if (currentToken !== t || !$("#tokenOnchain")) return;
+      const holders = await LIVE.koiosHolders(t.policy, t.asset);
+      if (currentToken !== t || !$("#tokenOnchain")) return;
+      const meta = (info && info.token_registry_metadata) || {};
+      const dec = info && info.decimals != null ? Number(info.decimals)
+        : meta.decimals != null ? Number(meta.decimals) : 0;
+      $("#tokenOnchain").innerHTML = `
+        <div class="kv"><span>Policy ID</span><button class="asset-id" data-copy="${t.policy}" title="${t.policy}">${fmt.hexShort(t.policy, 16)}</button></div>
+        <div class="kv"><span>Fingerprint</span><code style="font-size:11px">${info ? info.fingerprint : "—"}</code></div>
+        <div class="kv"><span>Decimals</span><span>${meta.decimals != null ? meta.decimals : "—"}</span></div>
+        <div class="kv"><span>Total supply</span><span>${info ? fmt.num(Number(info.total_supply) / Math.pow(10, dec)) : "—"}</span></div>
+        <div class="kv"><span>Holders</span><span>${holders != null ? fmt.num(holders) : "—"}</span></div>
+        <div class="kv"><span>Explorer</span><a href="https://cardanoscan.io/token/${t.unit}" target="_blank" rel="noopener">Cardanoscan ↗</a></div>`;
+      const cp = $("#tokenOnchain [data-copy]");
+      if (cp) cp.addEventListener("click", () => {
+        navigator.clipboard?.writeText(cp.dataset.copy).then(() => toast("Policy ID copied"));
+      });
+    })();
+
+    // buys/sells + pairs
+    LIVE.dexPairs(t.unit).then((dex) => {
+      if (currentToken !== t || !$("#tokenPage")) return;
+      const bs = $("#buysSells"), pt = $("#tokenPairsTable")?.querySelector("tbody");
+      if (!dex) {
+        if (bs) bs.innerHTML = `<p class="muted">No DEX pair data found.</p>`;
+        if (pt) pt.innerHTML = `<tr><td colspan="8" class="muted">No DEX pairs found for this token.</td></tr>`;
+        return;
       }
+      const tot = dex.buys + dex.sells;
+      const bp = tot ? (dex.buys / tot) * 100 : 50;
+      if (bs) bs.innerHTML = `
+        <div class="bs-bar"><span class="bs-buy" style="width:${bp}%"></span><span class="bs-sell" style="width:${100 - bp}%"></span></div>
+        <div class="bs-legend">
+          <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.num(dex.buys)} buys · ${fmt.usd(dex.buyVol)}</span>
+          <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.num(dex.sells)} sells · ${fmt.usd(dex.sellVol)}</span>
+        </div>
+        <div class="muted" style="font-size:11px;margin-top:6px">24h DEX activity · DexScreener</div>`;
+      if (pt) pt.innerHTML = dex.pairs.slice(0, 12).map((p) => `
+        <tr><td><strong>${p.dex}</strong></td><td>${p.pair}</td>
+        <td>${p.priceUsd ? fmt.usd(p.priceUsd, 6) : "—"}</td>
+        <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
+        <td>${fmt.usd(p.vol24)}</td><td>${fmt.usd(p.liq)}</td>
+        <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
+        <td><a href="${p.url}" target="_blank" rel="noopener">Trade ↗</a></td></tr>`).join("");
     });
   }
 
-  /* ——— Portfolio ——— */
-  function renderPortfolio() {
-    const pf = ND.PORTFOLIO;
-    $("#pfStats").innerHTML = [
-      { label: "Net worth", value: fmt.usd(51240), sub: "+6.4% 7d", ch: 1 },
-      { label: "Best", value: pf.best.id, sub: fmt.pct(pf.best.pnlPct), ch: 1 },
-      { label: "Worst", value: pf.worst.id, sub: fmt.pct(pf.worst.pnlPct), ch: -1 },
-      { label: "Wallets", value: String(pf.wallets.length), sub: pf.wallets.filter((w) => w.connected).length + " connected", ch: 1 },
-    ].map((s) => `
-      <div class="stat-card">
-        <div class="stat-label">${s.label} <span class="badge-demo">DEMO</span></div>
-        <div class="stat-value">${s.value}</div>
-        <div class="stat-sub ${chClass(s.ch)}">${s.sub}</div>
-      </div>`).join("");
-
-    const netSeries = pf.netWorth.map((p, i) => ({ t: Date.now() - (30 - (p.t + 30)) * 86400000, v: p.v }));
-    requestAnimationFrame(() => {
-      NDCharts.drawLineChart($("#pfNetChart"), netSeries, { range: "30D", color: "#8b7cff" });
-      NDCharts.drawDonut($("#pfAllocChart"), pf.allocation);
+  async function paintTokenChart(t) {
+    const cv = $("#tokenChart");
+    if (!cv) return;
+    const range = chartRanges.TOKEN;
+    if (chartType === "candle") {
+      const candles = await LIVE.ohlc(t.cg, range);
+      if (currentToken !== t || !$("#tokenChart")) return;
+      if (candles && candles.length > 1) {
+        NDCharts.drawCandles($("#tokenChart"), candles, {
+          onHover: (c) => {
+            const el = $("#hoverReadout");
+            if (el) el.textContent = c ? `O ${fmt.usd(c.o, 6)} · H ${fmt.usd(c.h, 6)} · L ${fmt.usd(c.l, 6)} · C ${fmt.usd(c.c, 6)}` : "";
+          },
+        });
+        return;
+      }
+      toast("Candles unavailable for this range — line chart shown");
+    }
+    const series = await LIVE.chart(t.cg, range);
+    if (currentToken !== t || !$("#tokenChart") || !series) return;
+    NDCharts.drawLineChart($("#tokenChart"), series, {
+      range,
+      onHover: (p) => {
+        const el = $("#hoverReadout");
+        if (el) el.textContent = p ? `${fmt.usd(p.v, 6)} · ${new Date(p.t).toLocaleString()}` : "";
+      },
     });
-    const colors = ["#8b7cff", "#2ee6c5", "#ffb020", "#ff6b7a", "#5b8cff", "#c084fc", "#34d399", "#94a3b8"];
-    $("#pfAllocLegend").innerHTML = pf.allocation.map((a, i) => `
-      <span><span><i class="dot-swatch" style="background:${colors[i % colors.length]}"></i>${a.id}</span><span>${a.pct}% · ${fmt.usd(a.value)}</span></span>`).join("");
-
-    $("#pf-tokens").innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Token</th><th>Amount</th><th>Value</th><th>Cost</th><th>P&L</th></tr></thead><tbody>
-      ${pf.tokens.map((x) => {
-        const tok = ND.getToken(x.id);
-        return `<tr onclick="location.hash='#token/${x.id}'"><td><div class="token-cell">${avatar(x.id,"sm")}<strong>${x.id}</strong></div></td>
-          <td>${fmt.num(x.amount)}</td><td>${fmt.usd(x.value)}</td><td>${fmt.usd(x.cost)}</td>
-          <td class="${chClass(x.pnlPct)}">${fmt.pct(x.pnlPct)}</td></tr>`;
-      }).join("")}
-    </tbody></table></div>`;
-
-    $("#pf-nfts").innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>NFT</th><th>Collection</th><th>Floor</th><th>Value</th></tr></thead><tbody>
-      ${pf.nfts.map((n) => `<tr><td><strong>${n.name}</strong></td><td>${n.collection}</td><td>${n.floor} ₳</td><td>${n.value} ₳</td></tr>`).join("")}
-    </tbody></table></div>`;
-
-    $("#pf-lps").innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Pair</th><th>DEX</th><th>Value</th><th>APR</th><th>P&L</th></tr></thead><tbody>
-      ${pf.lps.map((l) => `<tr><td><strong>${l.pair}</strong></td><td>${l.dex}</td><td>${fmt.usd(l.value)}</td><td class="up">${l.apr}%</td><td class="${chClass(l.pnlPct)}">${fmt.pct(l.pnlPct)}</td></tr>`).join("")}
-    </tbody></table></div>`;
-
-    $("#pf-trades").innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Side</th><th>Token</th><th>Amount</th><th>Price</th><th>ADA</th><th>When</th></tr></thead><tbody>
-      ${pf.trades.map((tr) => `<tr><td class="trade-side ${tr.side}">${tr.side}</td><td><strong>${tr.token}</strong></td><td>${fmt.num(tr.amount)}</td><td>${fmt.usd(tr.price, 4)}</td><td>${fmt.usd(tr.ada)}</td><td>${tr.when}</td></tr>`).join("")}
-    </tbody></table></div>`;
-
-    $("#pf-wallets").innerHTML = pf.wallets.map((w) => `
-      <div class="list-row">
-        <div><strong>${w.label}</strong><div class="muted" style="font-size:12px">${w.address}</div></div>
-        <span class="tag ${w.connected ? "" : "markets"}">${w.connected ? "connected" : "disconnected"}</span>
-      </div>`).join("");
   }
+
+  /* ——— Portfolio / wallet UI ——— */
+  const WALLET_UI = {
+    render() {
+      const s = WALLET.state;
+      const provs = WALLET.providers();
+      if (!s.connected && !s.watchOnly.length && !s.loading) return this.renderConnect(provs);
+      if (s.loading) {
+        $("#pfConnect").innerHTML = "";
+        $("#pfDash").style.display = "block";
+        $("#pfStats").innerHTML = skelCards(4);
+        return;
+      }
+      if (s.error) {
+        $("#pfDash").style.display = "none";
+        $("#pfConnect").innerHTML = `<div class="panel"><div class="empty"><strong>${s.error}</strong><br><br><button class="btn" id="pfRetry" type="button">Retry</button></div></div>`;
+        $("#pfRetry")?.addEventListener("click", () => { WALLET.refresh().then(() => this.render()); });
+        return;
+      }
+      this.renderDash();
+    },
+    renderConnect(provs) {
+      $("#pfDash").style.display = "none";
+      const cards = provs.length ? provs.map((p) => `
+        <button class="wallet-card" data-wallet="${p.key}" type="button">
+          ${p.icon ? `<img src="${p.icon}" alt="">` : `<span class="token-avatar">${p.name.charAt(0)}</span>`}
+          <strong>${p.name}</strong><span class="muted">Connect</span>
+        </button>`).join("")
+        : `<div class="empty"><strong>No Cardano wallet extension detected</strong><span class="muted">Install one to continue:</span>
+          <div class="install-row">${Object.entries(WALLET.INSTALL).map(([k, u]) =>
+            `<a href="${u}" target="_blank" rel="noopener">${k}</a>`).join("")}</div></div>`;
+      $("#pfConnect").innerHTML = `
+        <div class="panel" style="margin-bottom:12px"><div class="panel-head"><h2>Connect a wallet</h2></div>
+          <p class="muted" style="font-size:13px">NightDream reads your public addresses through Koios. Nothing is signed, nothing leaves your wallet.</p>
+          <div class="wallet-grid">${cards}</div></div>
+        <div class="panel"><div class="panel-head"><h2>Or track an address</h2></div>
+          <p class="muted" style="font-size:13px">Paste any Cardano address (addr1… or stake1…) to watch it without connecting.</p>
+          <div class="row-flex"><input id="watchAddr" class="input" placeholder="addr1… / stake1…"><button class="btn btn-primary" id="watchAddBtn" type="button">Track</button></div>
+        </div>`;
+      $$("#pfConnect [data-wallet]").forEach((b) =>
+        b.addEventListener("click", async () => {
+          b.disabled = true;
+          try { await WALLET.connect(b.dataset.wallet); toast("Wallet connected"); }
+          catch (e) { toast(e.message || "Connection failed"); }
+          this.render();
+        }));
+      $("#watchAddBtn")?.addEventListener("click", async () => {
+        try { await WALLET.addWatchOnly($("#watchAddr").value); toast("Address tracked"); this.render(); }
+        catch (e) { toast(e.message); }
+      });
+    },
+    renderDash() {
+      const s = WALLET.state;
+      $("#pfConnect").innerHTML = "";
+      $("#pfDash").style.display = "block";
+      const best = [...s.positions].sort((a, b) => (b.ch24 || -999) - (a.ch24 || -999))[0];
+      const worst = [...s.positions].sort((a, b) => (a.ch24 || 999) - (b.ch24 || 999))[0];
+      const stat = (label, value, sub, ch) => `
+        <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
+        <div class="stat-sub ${chClass(ch)}">${sub}</div></div>`;
+      $("#pfStats").innerHTML =
+        stat("Net worth", fmt.usd(s.totalUsd), s.updatedAt ? "updated " + fmt.timeAgo(s.updatedAt) : "", 0) +
+        stat("Positions", String(s.positions.length), s.nfts.length + " NFTs", 0) +
+        stat("Best 24h", best ? best.ticker : "—", best ? fmt.pct(best.ch24) : "", best ? best.ch24 : 0) +
+        stat("Worst 24h", worst ? worst.ticker : "—", worst ? fmt.pct(worst.ch24) : "", worst ? worst.ch24 : 0);
+
+      requestAnimationFrame(() => {
+        const cv = $("#pfAllocChart");
+        if (!cv) return;
+        NDCharts.drawDonut(cv, s.positions.slice(0, 8).map((p) => ({
+          label: p.ticker, pct: s.totalUsd ? (p.value / s.totalUsd) * 100 : 0,
+        })));
+      });
+      const colors = ["#8b7cff", "#2ee6c5", "#ffb020", "#ff6b7a", "#5b8cff", "#c084fc", "#34d399", "#94a3b8"];
+      $("#pfAllocLegend").innerHTML = s.positions.slice(0, 8).map((p, i) => `
+        <span><span><i class="dot-swatch" style="background:${colors[i % colors.length]}"></i>${p.ticker}</span>
+        <span>${s.totalUsd ? ((p.value / s.totalUsd) * 100).toFixed(1) : 0}% · ${fmt.usd(p.value)}</span></span>`).join("");
+
+      $("#pf-tokens").innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr>
+        <th>Token</th><th>Amount</th><th>Price</th><th>Value</th><th>24h</th></tr></thead><tbody>
+        ${s.positions.map((p) => `
+          <tr><td><div class="token-cell">${icon({ ticker: p.ticker, image: p.image }, 1)}<div class="token-meta"><strong>${p.ticker}</strong><span>${p.name}</span></div></div></td>
+          <td>${p.qty.toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
+          <td>${p.price ? fmt.usd(p.price, 6) : "—"}</td><td>${fmt.usd(p.value)}</td>
+          <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td></tr>`).join("")
+          || `<tr><td colspan="5" class="muted">No token positions found.</td></tr>`}
+        </tbody></table></div>`;
+
+      $("#pf-nfts").innerHTML = s.nfts.length
+        ? `<div class="nft-grid">${s.nfts.slice(0, 24).map((n) => `
+          <div class="nft-card"><div class="nft-art">${(n.name || "?").charAt(0).toUpperCase()}</div>
+          <div class="nft-name">${n.name}</div><div class="muted" style="font-size:11px">${fmt.hexShort(n.unit, 10)}</div></div>`).join("")}</div>`
+        : `<div class="empty"><strong>No NFTs detected</strong><span class="muted">Single-unit unknown assets show up here.</span></div>`;
+
+      const wallets = [];
+      if (s.connected) wallets.push({ label: s.providerName + " · connected", addr: s.address, on: true });
+      s.watchOnly.forEach((w) => wallets.push({ label: "Tracked address", addr: w, on: false }));
+      $("#pf-wallets").innerHTML = wallets.map((w) => `
+        <div class="list-row"><div><strong>${w.label}</strong><div class="muted" style="font-size:12px">${w.addr}</div></div>
+        <span class="tag ${w.on ? "" : "markets"}">${w.on ? "connected" : "tracked"}</span></div>`).join("") + `
+        <div class="row-flex" style="margin-top:12px"><input id="watchAddr2" class="input" placeholder="Track another addr1… / stake1…">
+        <button class="btn btn-sm" id="watchAddBtn2" type="button">Track</button>
+        ${s.connected ? `<button class="btn btn-sm btn-ghost" id="pfDisconnect" type="button">Disconnect</button>` : ""}</div>`;
+      $("#watchAddBtn2")?.addEventListener("click", async () => {
+        try { await WALLET.addWatchOnly($("#watchAddr2").value); toast("Address tracked"); this.render(); }
+        catch (e) { toast(e.message); }
+      });
+      $("#pfDisconnect")?.addEventListener("click", () => { WALLET.disconnect(); this.render(); renderPfMiniPanel(); });
+
+      $("#pf-activity").innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Transaction</th><th>Time</th><th>Fee</th></tr></thead>
+        <tbody id="pfActivityBody"><tr><td colspan="3">${skel(3)}</td></tr></tbody></table></div>`;
+      WALLET.tradeHistory(15).then((txs) => {
+        const tb = $("#pfActivityBody");
+        if (!tb) return;
+        if (!txs) { tb.innerHTML = `<tr><td colspan="3" class="muted">Activity unavailable.</td></tr>`; return; }
+        tb.innerHTML = txs.map((x) => `
+          <tr><td><a href="https://cardanoscan.io/transaction/${x.tx_hash}" target="_blank" rel="noopener"><code>${x.tx_hash.slice(0, 12)}…</code> ↗</a></td>
+          <td>${x.block_time ? new Date(x.block_time * 1000).toLocaleString() : "—"}</td>
+          <td class="muted">${x.fee ? fmt.ada(Number(x.fee) / 1e6) : ""}</td></tr>`).join("")
+          || `<tr><td colspan="3" class="muted">No recent transactions.</td></tr>`;
+      });
+    },
+  };
+  window.WALLET_UI = WALLET_UI;
 
   /* ——— DEX ——— */
-  function renderDex() {
-    const bars = ND.DEXES.map((d) => ({ label: d.name, pct: d.share }));
+  async function renderDex() {
+    $("#dexList").innerHTML = skel(6);
+    $("#poolsTable").querySelector("tbody").innerHTML = `<tr><td colspan="7">${skel(6)}</td></tr>`;
+    const dn = $("#dexNote");
+    if (dn) dn.textContent = "Aggregating top pairs from DexScreener…";
+    const agg = await getDexAgg();
+    if (currentRoute !== "dex") return;
+    const totVol = agg.dexes.reduce((s, d) => s + d.vol24, 0) || 1;
     requestAnimationFrame(() => {
-      NDCharts.drawBars($("#dexVolChart"), ND.DEXES.map((d) => ({ label: d.name, pct: Math.round(d.vol24 / 1e5) / 10 })));
-      NDCharts.drawDonut($("#dexShareChart"), bars);
+      const b = $("#dexVolChart"), d = $("#dexShareChart");
+      if (!b || !d) return;
+      NDCharts.drawBars(b, agg.dexes.slice(0, 8).map((x) => ({ label: x.name, pct: Math.round((x.vol24 / 1e6) * 10) / 10 })));
+      NDCharts.drawDonut(d, agg.dexes.map((x) => ({ label: x.name, pct: (x.vol24 / totVol) * 100 })));
     });
-    $("#dexList").innerHTML = ND.DEXES.map((d) => `
-      <div class="list-row"><strong>${d.name}</strong><span>${fmt.usd(d.vol24)} · ${d.share}%</span></div>`).join("");
-    const colors = ["#8b7cff", "#2ee6c5", "#ffb020", "#ff6b7a", "#5b8cff", "#94a3b8"];
-    $("#dexShareLegend").innerHTML = ND.DEXES.map((d, i) => `
-      <span><span><i class="dot-swatch" style="background:${colors[i % colors.length]}"></i>${d.name}</span><span>${d.share}%</span></span>`).join("");
-    $("#poolsTable tbody").innerHTML = ND.POOLS.map((p) => `
-      <tr><td><strong>${p.pair}</strong></td><td>${p.dex}</td><td>${fmt.usd(p.tvl)}</td><td>${fmt.usd(p.vol24)}</td><td class="up">${p.apr}%</td><td>${p.fee}</td></tr>`).join("");
-  }
-
-  /* ——— News ——— */
-  function renderNews() {
-    const srcSel = $("#newsSource");
-    if (srcSel && srcSel.options.length <= 1) {
-      ND.NEWS_SOURCES.forEach((s) => {
-        const o = document.createElement("option");
-        o.value = s; o.textContent = s;
-        srcSel.appendChild(o);
-      });
-    }
-    $("#newsSources").innerHTML = ND.NEWS_SOURCES.map((s) => `
-      <div class="list-row" style="cursor:pointer" data-src="${s}"><span>${s}</span><span class="muted">${ND.NEWS.filter((n) => n.source === s).length}</span></div>`).join("");
-    $$("#newsSources [data-src]").forEach((el) => {
-      el.addEventListener("click", () => {
-        $("#newsSource").value = el.dataset.src;
-        paintNews();
-      });
-    });
-    paintNews();
-  }
-  function paintNews() {
-    const tag = $("#newsTag")?.value || "";
-    const src = $("#newsSource")?.value || "";
-    let items = ND.NEWS;
-    if (tag) items = items.filter((n) => n.tag === tag);
-    if (src) items = items.filter((n) => n.source === src);
-    $("#newsList").innerHTML = items.map((n) => {
-      const tagCls = n.tag === "Midnight" ? "midnight" : n.tag === "DEX" ? "dex" : n.tag === "Markets" ? "markets" : "";
-      return `<div class="list-row" style="align-items:flex-start;flex-direction:column;gap:4px;padding:12px 4px">
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <span class="tag ${tagCls}">${n.tag}</span>
-          <span class="muted" style="font-size:11px">${n.source} · ${fmt.timeAgo(n.ts)}</span>
-        </div>
-        <strong style="font-size:14px">${n.title}</strong>
-      </div>`;
-    }).join("") || `<div class="empty">No headlines for this filter</div>`;
+    const colors = ["#8b7cff", "#2ee6c5", "#ffb020", "#ff6b7a", "#5b8cff", "#c084fc", "#34d399", "#94a3b8"];
+    $("#dexShareLegend").innerHTML = agg.dexes.map((d, i) => `
+      <span><span><i class="dot-swatch" style="background:${colors[i % colors.length]}"></i>${d.name}</span>
+      <span>${((d.vol24 / totVol) * 100).toFixed(1)}%</span></span>`).join("");
+    $("#dexList").innerHTML = agg.dexes.map((d) => `
+      <div class="list-row"><strong>${d.name}</strong><span>${fmt.usd(d.vol24)} · ${d.pairs} pairs</span></div>`).join("")
+      || `<div class="empty">No DEX data available.</div>`;
+    $("#poolsTable").querySelector("tbody").innerHTML = agg.pairs.slice(0, 20).map((p) => `
+      <tr><td><strong>${p.pair}</strong></td><td>${p.dex}</td><td>${fmt.usd(p.liq)}</td>
+      <td>${fmt.usd(p.vol24)}</td><td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
+      <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
+      <td><a href="${p.url}" target="_blank" rel="noopener">View ↗</a></td></tr>`).join("");
+    if (dn) dn.textContent = `24h volume aggregated from top pairs of 12 tracked tokens · DexScreener · updated ${fmt.timeAgo(dexAggAt)}`;
   }
 
   /* ——— Midnight ——— */
-  function renderMidnight() {
-    const n = ND.PULSE.night;
-    $("#nightStats").innerHTML = [
-      { label: "NIGHT price", value: fmt.usd(n.price, 4), sub: fmt.pct(n.change24h), ch: n.change24h },
-      { label: "Mcap", value: fmt.usd(n.mcap), sub: "Circ " + fmt.num(n.circulating), ch: 1 },
-      { label: "FDV", value: fmt.usd(n.fdv), sub: "Max " + fmt.num(n.maxSupply), ch: 1 },
-      { label: "Vol 24h", value: fmt.usd(n.volume24h), sub: "DEMO", ch: 1 },
-    ].map((s) => `
-      <div class="stat-card"><div class="stat-label">${s.label}</div><div class="stat-value">${s.value}</div><div class="stat-sub ${chClass(s.ch)}">${s.sub}</div></div>`).join("");
+  async function renderMidnight() {
+    const night = ND.TOKENS.find((t) => t.cg === "midnight-3");
+    if (!night) { $("#nightStats").innerHTML = skelCards(4); return; }
+    const stat = (label, value, sub, ch) => `
+      <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
+      <div class="stat-sub ${chClass(ch)}">${sub}</div></div>`;
+    $("#nightStats").innerHTML =
+      stat("NIGHT price", fmt.usd(night.price, 4), fmt.pct(night.ch24) + " 24h", night.ch24) +
+      stat("Mcap", fmt.usd(night.mcap), night.rank ? "Rank #" + night.rank : "", 0) +
+      stat("FDV", fmt.usd(night.fdv), fmt.pct(night.ch7d) + " 7d", night.ch7d) +
+      stat("Vol 24h", fmt.usd(night.vol), "CoinGecko", 0);
     $("#dustNote").textContent = ND.MIDNIGHT.generationNote;
     $("#bridgeNote").textContent = ND.MIDNIGHT.bridgeNote;
     updateDustCalc();
-    requestAnimationFrame(() => {
-      NDCharts.drawLineChart($("#nightDeepChart"), ND.CHARTS.NIGHT, { range: chartRanges.NIGHT, color: "#2ee6c5", fill: "rgba(46,230,197,0.12)" });
-    });
+    drawNightChart(chartRanges.NIGHT);
+  }
+  async function drawNightChart(range) {
+    const days = range === "24H" ? 1 : range === "7D" ? 7 : 30;
+    const series = await LIVE.chart("midnight-3", days);
+    if (!series || currentRoute !== "midnight" || !$("#nightDeepChart")) return;
+    NDCharts.drawLineChart($("#nightDeepChart"), series, { range, color: "#2ee6c5", fill: "rgba(46,230,197,0.10)" });
   }
   function updateDustCalc() {
     const holdings = Number($("#nightHoldings")?.value || 0);
     const factor = Number($("#genFactor")?.value || 0.0146);
-    const cap = holdings * ND.MIDNIGHT.dustPerNightMax;
-    const rate = holdings * factor;
     const el = $("#dustResult");
     if (!el) return;
+    const cap = holdings * ND.MIDNIGHT.dustPerNightMax;
+    const rate = holdings * factor;
     el.innerHTML = `<strong>Capacity:</strong> ~${fmt.num(cap)} DUST max (5 × NIGHT)<br/>
-      <strong>Est. generation:</strong> ~${rate.toFixed(2)} DUST / day <span class="badge-demo">DEMO</span><br/>
-      <span class="muted">Illustrative only — real rates follow Midnight network parameters.</span>`;
-  }
-  function checkStake() {
-    const raw = ($("#stakeInput")?.value || "").trim().toLowerCase();
-    const box = $("#stakeResult");
-    if (!raw) { box.style.display = "none"; return; }
-    const hit = ND.MIDNIGHT.stakeDemo[raw];
-    box.style.display = "block";
-    if (hit) {
-      box.innerHTML = `<strong>Status:</strong> <span class="up">${hit.status}</span><br/>
-        NIGHT staked: ${fmt.num(hit.nightStaked)} · DUST capacity: ${fmt.num(hit.dustCapacity)}<br/>
-        Gen rate: ~${fmt.num(hit.genRatePerDay)} DUST/day · Epoch ${hit.epoch} <span class="badge-demo">DEMO</span>`;
-    } else {
-      box.innerHTML = `<strong>No demo record</strong> for that address.<br/>
-        <span class="muted">Try <code>stake1uydemo0nightdream</code> — live stake checks will wire to Midnight APIs later.</span>`;
-    }
+      <strong>Est. generation:</strong> ~${rate.toFixed(2)} DUST / day<br/>
+      <span class="muted">Model estimate — real rates follow Midnight network parameters.</span>`;
   }
 
   /* ——— Watchlist ——— */
   function renderWatchlist() {
-    const ids = [...watch];
-    const tb = $("#watchTable tbody");
+    const ids = [...watch].map((id) => ND.getToken(id)).filter(Boolean);
+    const tb = $("#watchTable").querySelector("tbody");
     const empty = $("#watchEmpty");
-    if (!ids.length) {
-      tb.innerHTML = "";
-      empty.style.display = "block";
-      return;
-    }
+    if (!ids.length) { tb.innerHTML = ""; empty.style.display = "block"; return; }
     empty.style.display = "none";
-    tb.innerHTML = ids.map((id) => {
-      const t = ND.getToken(id);
-      if (!t) return "";
-      return `<tr>
-        <td><button class="star-btn on" data-star="${id}" type="button">★</button></td>
-        <td><div class="token-cell" style="cursor:pointer" onclick="location.hash='#token/${id}'">${avatar(t.ticker)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
-        <td>${fmt.usd(t.price, 6)}</td>
-        <td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
-        <td>${fmt.usd(t.vol)}</td>
-        <td>${fmt.usd(t.mcap)}</td>
-        <td><a class="btn btn-sm" href="#token/${id}">Open</a></td>
-      </tr>`;
-    }).join("");
-    tb.querySelectorAll("[data-star]").forEach((btn) => {
-      btn.addEventListener("click", () => toggleWatch(btn.dataset.star));
-    });
+    tb.innerHTML = ids.map((t) => `
+      <tr><td><button class="star-btn on" data-star="${t.ticker}" type="button">★</button></td>
+      <td><div class="token-cell" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
+      <td>${fmt.usd(t.price, 6)}</td><td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
+      <td>${fmt.usd(t.vol)}</td><td>${fmt.usd(t.mcap)}</td>
+      <td><a class="btn btn-sm" href="#token/${t.ticker}">Open</a></td></tr>`).join("");
+    tb.querySelectorAll("[data-star]").forEach((b) => b.addEventListener("click", () => toggleWatch(b.dataset.star)));
   }
 
-  /* ——— ⌘K Command palette ——— */
+  /* ——— ⌘K ——— */
   function openCmdk() {
     $("#cmdk").classList.add("open");
     const input = $("#cmdkInput");
@@ -640,99 +695,72 @@
       { label: "Markets", hint: "Tokens", hash: "#markets" },
       { label: "Portfolio", hint: "Wallets", hash: "#portfolio" },
       { label: "DEX / Liquidity", hint: "Pools", hash: "#dex" },
-      { label: "News", hint: "Feed", hash: "#news" },
       { label: "Midnight", hint: "NIGHT · DUST", hash: "#midnight" },
       { label: "Watchlist", hint: "Saved", hash: "#watchlist" },
-      { label: "SUNDAE token", hint: "Deep link", hash: "#token/SUNDAE" },
-      { label: "NIGHT token", hint: "Midnight", hash: "#token/NIGHT" },
-    ];
-    const tokens = ND.TOKENS.filter((t) => t.id !== "DUST").map((t) => ({
-      label: `${t.ticker} · ${t.name}`,
-      hint: fmt.usd(t.price, 4),
-      hash: `#token/${t.id}`,
+    ].map((p) => ({ ...p, hay: p.label.toLowerCase() }));
+    const tokens = ND.TOKENS.map((t) => ({
+      label: `${t.ticker} · ${t.name}`, hint: fmt.usd(t.price, 4), hash: `#token/${t.ticker}`,
+      hay: `${t.ticker} ${t.name} ${t.policy} ${t.unit}`.toLowerCase(),
     }));
     let items = [...pages, ...tokens];
-    if (q) {
-      items = items.filter((i) => i.label.toLowerCase().includes(q) || (i.hint || "").toLowerCase().includes(q));
-    }
+    if (q) items = items.filter((i) => i.hay.includes(q));
     items = items.slice(0, 20);
     const list = $("#cmdkList");
-    if (!items.length) {
-      list.innerHTML = `<div class="cmdk-empty">No matches</div>`;
-      return;
-    }
-    list.innerHTML = items.map((i, idx) => `
+    list.innerHTML = items.length ? items.map((i, idx) => `
       <div class="cmdk-item ${idx === 0 ? "active" : ""}" data-hash="${i.hash}">
-        <span>${i.label}</span><span class="hint">${i.hint || ""}</span>
-      </div>`).join("");
-    list.querySelectorAll(".cmdk-item").forEach((el) => {
-      el.addEventListener("click", () => {
-        closeCmdk();
-        navigate(el.dataset.hash);
-      });
-    });
+        <span>${i.label}</span><span class="hint">${i.hint || ""}</span></div>`).join("")
+      : `<div class="cmdk-empty">No matches</div>`;
+    list.querySelectorAll(".cmdk-item").forEach((el) =>
+      el.addEventListener("click", () => { closeCmdk(); navigate(el.dataset.hash); }));
   }
 
   /* ——— Events ——— */
   function bind() {
     window.addEventListener("hashchange", render);
-
     $("#menuBtn")?.addEventListener("click", () => {
       $("#sidebar").classList.toggle("open");
       $("#sidebarOverlay").classList.toggle("show");
     });
     $("#sidebarOverlay")?.addEventListener("click", closeSidebar);
+    $("#connectBtn")?.addEventListener("click", () => navigate("#portfolio"));
 
-    $("#connectBtn")?.addEventListener("click", () => toast("Wallet connect — placeholder (Lace / Eternl / Vespr)"));
-    $("#portfolioConnect")?.addEventListener("click", () => toast("Connect another wallet — demo CTA"));
-
-    // overview / midnight range toggles
+    // segmented controls (overview / token / midnight)
     document.addEventListener("click", (e) => {
       const seg = e.target.closest(".seg-btn");
       if (!seg) return;
       const group = seg.closest(".seg");
-      if (!group || group.id === "tokenRange") return;
+      if (!group || !group.id) return;
       $$(".seg-btn", group).forEach((b) => b.classList.remove("active"));
       seg.classList.add("active");
-      const chart = group.dataset.chart;
-      if (chart) {
-        chartRanges[chart] = seg.dataset.range;
-        if (chart === "ADA") NDCharts.drawLineChart($("#ovAdaChart"), ND.CHARTS.ADA, { range: chartRanges.ADA });
-        if (chart === "NIGHT") {
-          const opts = { range: chartRanges.NIGHT, color: "#2ee6c5", fill: "rgba(46,230,197,0.12)" };
-          if ($("#ovNightChart")) NDCharts.drawLineChart($("#ovNightChart"), ND.CHARTS.NIGHT, opts);
-          if ($("#nightDeepChart")) NDCharts.drawLineChart($("#nightDeepChart"), ND.CHARTS.NIGHT, opts);
-        }
-      }
+      if (group.id === "ovAdaRange") { chartRanges.ADA = seg.dataset.range; drawOverviewChart("ADA", chartRanges.ADA); }
+      if (group.id === "ovNightRange") { chartRanges.NIGHT = seg.dataset.range; drawOverviewChart("NIGHT", chartRanges.NIGHT); }
+      if (group.id === "nightRange") { chartRanges.NIGHT = seg.dataset.range; drawNightChart(chartRanges.NIGHT); }
+      if (group.id === "tokenRange") { chartRanges.TOKEN = seg.dataset.range; if (currentToken) paintTokenChart(currentToken); }
+      if (group.id === "chartType") { chartType = seg.dataset.ctype; if (currentToken) paintTokenChart(currentToken); }
     });
 
-    // market tabs
+    // market tabs (category quick filters)
     $("#marketTabs")?.addEventListener("click", (e) => {
       const tab = e.target.closest("[data-mtab]");
       if (!tab) return;
       $$("#marketTabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
-      $$("[id^=mtab-]").forEach((p) => p.classList.toggle("active", p.id === "mtab-" + tab.dataset.mtab));
+      renderMarketTokens();
     });
 
-    // market filters
-    ["marketSearch", "marketCat", "liqMin", "watchOnly"].forEach((id) => {
+    ["marketSearch", "marketCat", "watchOnly"].forEach((id) => {
       const el = $("#" + id);
       if (!el) return;
-      el.addEventListener("input", () => {
-        if (id === "liqMin") $("#liqMinLabel").textContent = fmt.usd(Number(el.value));
-        renderMarketTokens();
-      });
-      el.addEventListener("change", () => renderMarketTokens());
+      el.addEventListener("input", renderMarketTokens);
+      el.addEventListener("change", renderMarketTokens);
     });
 
-    // market sort
     $("#marketsTable")?.querySelector("thead")?.addEventListener("click", (e) => {
       const th = e.target.closest("[data-sort]");
       if (!th) return;
       const key = th.dataset.sort;
       if (marketSort.key === key) marketSort.dir *= -1;
       else { marketSort.key = key; marketSort.dir = key === "ticker" ? 1 : -1; }
-      $$("#marketsTable th").forEach((x) => x.classList.toggle("sorted", x.dataset.sort === marketSort.key));
+      $$("#marketsTable th").forEach((x) => x.classList.toggle("sorted", x.dataset.sort === key));
       renderMarketTokens();
     });
 
@@ -741,25 +769,17 @@
       const tab = e.target.closest("[data-tab]");
       if (!tab) return;
       $$("#pfTabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
-      $$("[id^=pf-]").forEach((p) => {
-        if (!p.id.startsWith("pf-")) return;
-        p.classList.toggle("active", p.id === "pf-" + tab.dataset.tab);
-      });
+      $$(".tab-panel", $("#sec-portfolio")).forEach((p) =>
+        p.classList.toggle("active", p.id === "pf-" + tab.dataset.tab));
     });
-
-    // news filters
-    $("#newsTag")?.addEventListener("change", paintNews);
-    $("#newsSource")?.addEventListener("change", paintNews);
 
     // midnight calc
     $("#nightHoldings")?.addEventListener("input", updateDustCalc);
     $("#genFactor")?.addEventListener("input", updateDustCalc);
-    $("#stakeCheckBtn")?.addEventListener("click", checkStake);
-    $("#stakeInput")?.addEventListener("keydown", (e) => { if (e.key === "Enter") checkStake(); });
 
     // ⌘K
     $("#globalSearch")?.addEventListener("click", openCmdk);
-    $("#globalSearch")?.addEventListener("focus", (e) => { e.target.blur(); openCmdk(); });
+    $("#globalSearch")?.addEventListener("focus", (ev) => { ev.target.blur(); openCmdk(); });
     $("#cmdk")?.addEventListener("click", (e) => { if (e.target.id === "cmdk") closeCmdk(); });
     $("#cmdkInput")?.addEventListener("input", (e) => paintCmdk(e.target.value));
     $("#cmdkInput")?.addEventListener("keydown", (e) => {
@@ -781,19 +801,17 @@
     window.addEventListener("keydown", (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        if ($("#cmdk").classList.contains("open")) closeCmdk();
-        else openCmdk();
+        $("#cmdk").classList.contains("open") ? closeCmdk() : openCmdk();
       }
       if (e.key === "Escape") closeCmdk();
     });
 
     window.addEventListener("resize", () => {
-      const { route } = parseHash();
-      if (route === "overview") {
-        NDCharts.drawLineChart($("#ovAdaChart"), ND.CHARTS.ADA, { range: chartRanges.ADA });
-        NDCharts.drawLineChart($("#ovNightChart"), ND.CHARTS.NIGHT, { range: chartRanges.NIGHT, color: "#2ee6c5", fill: "rgba(46,230,197,0.12)" });
-      }
+      const { route, param } = parseHash();
+      if (route === "token" && currentToken) paintTokenChart(currentToken);
     });
+
+    setInterval(paintFresh, 15000);
   }
 
   function closeSidebar() {
@@ -802,7 +820,20 @@
   }
 
   /* ——— Boot ——— */
-  bind();
-  if (!location.hash) location.hash = "#overview";
-  else render();
+  async function boot() {
+    bind();
+    if (!location.hash) location.hash = "#overview";
+    render(); // skeletons
+    paintFresh();
+    await ND.ensureMarkets();
+    paintFresh();
+    render(); // live
+    setInterval(async () => {
+      await ND.ensureMarkets(true);
+      dexAggCache = null;
+      paintFresh();
+      if (["overview", "markets", "watchlist", "midnight"].includes(currentRoute)) render();
+    }, 5 * 60 * 1000);
+  }
+  boot();
 })();

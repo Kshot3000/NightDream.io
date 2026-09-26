@@ -34,15 +34,15 @@
         <a class="nav-item" href="#portfolio" data-route="portfolio"><span class="nav-icon">◉</span> Portfolio</a>
         <div class="nav-label">DeFi</div>
         <a class="nav-item" href="#dex" data-route="dex"><span class="nav-icon">⇄</span> DEX / Liquidity</a>
-        <a class="nav-item" href="#news" data-route="news"><span class="nav-icon">☰</span> News</a>
         <div class="nav-label">Differentiator</div>
         <a class="nav-item" href="#midnight" data-route="midnight"><span class="nav-icon">☾</span> Midnight</a>
         <a class="nav-item" href="#watchlist" data-route="watchlist"><span class="nav-icon">★</span> Watchlist</a>
       </nav>
 
       <div class="sidebar-foot">
-        <div class="demo-pill">DEMO data · not live feeds</div>
+        <div class="live-pill"><span class="pulse"></span> Live data · CoinGecko · DexScreener · Koios</div>
         <a class="gh-link" href="https://github.com/Kshot3000/NightDream.io" target="_blank" rel="noopener">GitHub · Kshot3000/NightDream.io</a>
+        <a class="gh-link" href="https://x.com/kshot9000" target="_blank" rel="noopener">X · @kshot9000</a>
       </div>
     </aside>
 
@@ -55,6 +55,7 @@
           <span class="search-hint"><span class="kbd">⌘</span><span class="kbd">K</span></span>
         </div>
         <div class="topbar-actions">
+          <span class="freshness" id="dataFresh"><span class="pulse"></span> connecting…</span>
           <span class="network-chip"><span class="dot"></span><span>Mainnet + Midnight</span></span>
           <button class="btn btn-primary" id="connectBtn" type="button">Connect wallet</button>
         </div>
@@ -66,12 +67,11 @@
           <div class="page-head">
             <div>
               <h1>Morning desk</h1>
-              <p class="muted">ADA + NIGHT pulse · movers · liquidity · headlines <span class="badge-demo">DEMO</span></p>
+              <p class="muted">ADA + NIGHT pulse · movers · liquidity · portfolio</p>
             </div>
             <div class="page-meta"><span id="lastUpdated"></span></div>
           </div>
           <div class="stat-grid" id="overviewStats"></div>
-          <div class="news-strip" id="overviewNews"></div>
           <div class="panel-grid">
             <section class="panel">
               <div class="panel-head">
@@ -127,81 +127,41 @@
           <div class="page-head">
             <div>
               <h1>Markets</h1>
-              <p class="muted">Tokens · Pools · Exchanges · Trades — denser than Float <span class="badge-demo">DEMO</span></p>
+              <p class="muted"><span id="marketCount">—</span> · live from CoinGecko</p>
             </div>
-            <div class="page-meta freshness"><span class="pulse"></span> Live demo tick · <span id="marketsFresh">just now</span></div>
+            <div class="page-meta freshness"><span class="pulse"></span> <span id="marketsFresh">connecting…</span></div>
           </div>
           <div class="tabs market-tabs" id="marketTabs">
-            <button class="tab active" data-mtab="tokens" type="button">Tokens</button>
-            <button class="tab" data-mtab="pools" type="button">Pools</button>
-            <button class="tab" data-mtab="exchanges" type="button">Exchanges</button>
-            <button class="tab" data-mtab="trades" type="button">Trades</button>
+            <button class="tab active" data-mtab="all" type="button">All</button>
+            <button class="tab" data-mtab="DeFi" type="button">DeFi</button>
+            <button class="tab" data-mtab="DEX" type="button">DEX</button>
+            <button class="tab" data-mtab="Meme" type="button">Meme</button>
+            <button class="tab" data-mtab="Stable" type="button">Stable</button>
           </div>
           <div class="tab-panel active" id="mtab-tokens">
             <div class="filters">
-              <input type="search" id="marketSearch" placeholder="Name, ticker, or asset id…" />
+              <input type="search" id="marketSearch" placeholder="Name, ticker, policy id, or asset unit…" />
               <select id="marketCat">
                 <option value="">All categories</option>
-                <option>L1</option><option>Midnight</option><option>DEX</option><option>Stable</option>
-                <option>Meme</option><option>Lending</option><option>Infra</option><option>Gaming</option><option>AI</option><option>RWA</option>
               </select>
-              <label class="liq-filter">Min liquidity
-                <input type="range" id="liqMin" min="0" max="10000000" step="100000" value="0" />
-                <span id="liqMinLabel">$0</span>
-              </label>
-              <label class="chk"><input type="checkbox" id="watchOnly" /> Saved / watchlist</label>
+              <label class="chk"><input type="checkbox" id="watchOnly" /> Watchlist only</label>
             </div>
             <div class="panel">
               <div class="table-wrap">
                 <table class="data-table" id="marketsTable">
                   <thead>
                     <tr>
-                      <th data-sort="watch">★</th>
-                      <th data-sort="rank">#</th>
+                      <th>★</th>
+                      <th>#</th>
                       <th data-sort="ticker">Token</th>
                       <th data-sort="price">Price</th>
+                      <th data-sort="ch1h">1h</th>
                       <th data-sort="ch24">24h</th>
                       <th data-sort="ch7d">7d</th>
-                      <th>7d</th>
                       <th data-sort="vol">Vol 24h</th>
-                      <th data-sort="liq">Liquidity</th>
-                      <th data-sort="fdv">FDV</th>
-                      <th data-sort="holders">Holders</th>
-                      <th data-sort="pools">Pools</th>
-                      <th data-sort="trades24">Trades</th>
+                      <th data-sort="mcap">Mkt Cap</th>
                     </tr>
                   </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-          <div class="tab-panel" id="mtab-pools">
-            <div class="panel">
-              <div class="table-wrap">
-                <table class="data-table" id="marketsPoolsTable">
-                  <thead><tr><th>Pair</th><th>DEX</th><th>TVL</th><th>Vol 24h</th><th>APR</th><th>Fee %</th></tr></thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-          <div class="tab-panel" id="mtab-exchanges">
-            <div class="panel">
-              <div class="table-wrap">
-                <table class="data-table" id="marketsExTable">
-                  <thead><tr><th>#</th><th>Exchange</th><th>Vol 24h</th><th>Pools</th><th>Share</th></tr></thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-          <div class="tab-panel" id="mtab-trades">
-            <div class="panel">
-              <div class="panel-head"><h2>Recent trades</h2><span class="muted">Wallet-size badges · smart-money tags <span class="badge-demo">DEMO</span></span></div>
-              <div class="table-wrap">
-                <table class="data-table" id="marketsTradesTable">
-                  <thead><tr><th>Time</th><th>Token</th><th>Side</th><th>Price</th><th>Amount</th><th>ADA</th><th>Wallet</th><th>DEX</th></tr></thead>
                   <tbody></tbody>
                 </table>
               </div>
@@ -219,37 +179,31 @@
           <div class="page-head">
             <div>
               <h1>Portfolio</h1>
-              <p class="muted">Multi-wallet demo · tokens · NFTs · LP · P&amp;L <span class="badge-demo">DEMO</span></p>
+              <p class="muted">Live balances via CIP-30 wallets + Koios · read-only</p>
             </div>
-            <button class="btn btn-primary" id="portfolioConnect" type="button">Connect another wallet</button>
           </div>
+          <div id="pfConnect"></div>
+          <div id="pfDash" style="display:none">
           <div class="stat-grid" id="pfStats"></div>
-          <div class="panel-grid">
-            <section class="panel">
-              <div class="panel-head"><h2>Net worth (30d)</h2></div>
-              <div class="chart-wrap"><canvas id="pfNetChart"></canvas></div>
-            </section>
-            <section class="panel">
-              <div class="panel-head"><h2>Allocation</h2></div>
-              <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
-                <div class="chart-wrap xs" style="width:160px;height:160px;flex-shrink:0"><canvas id="pfAllocChart"></canvas></div>
-                <div class="alloc-legend" id="pfAllocLegend"></div>
-              </div>
-            </section>
+          <div class="panel" style="margin-bottom:12px">
+            <div class="panel-head"><h2>Allocation</h2></div>
+            <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+              <div class="chart-wrap xs" style="width:160px;height:160px;flex-shrink:0"><canvas id="pfAllocChart"></canvas></div>
+              <div class="alloc-legend" id="pfAllocLegend"></div>
+            </div>
           </div>
           <div class="panel">
             <div class="tabs" id="pfTabs">
               <button class="tab active" data-tab="tokens" type="button">Tokens</button>
               <button class="tab" data-tab="nfts" type="button">NFTs</button>
-              <button class="tab" data-tab="lps" type="button">LP</button>
-              <button class="tab" data-tab="trades" type="button">Trade history</button>
+              <button class="tab" data-tab="activity" type="button">Activity</button>
               <button class="tab" data-tab="wallets" type="button">Wallets</button>
             </div>
             <div class="tab-panel active" id="pf-tokens"></div>
             <div class="tab-panel" id="pf-nfts"></div>
-            <div class="tab-panel" id="pf-lps"></div>
-            <div class="tab-panel" id="pf-trades"></div>
+            <div class="tab-panel" id="pf-activity"></div>
             <div class="tab-panel" id="pf-wallets"></div>
+          </div>
           </div>
         </section>
 
@@ -258,7 +212,7 @@
           <div class="page-head">
             <div>
               <h1>DEX / Liquidity</h1>
-              <p class="muted">Volume share · pool table <span class="badge-demo">DEMO</span></p>
+              <p class="muted">Live pair data from DexScreener · <span id="dexNote"></span></p>
             </div>
           </div>
           <div class="panel-grid equal">
@@ -276,42 +230,13 @@
             </section>
           </div>
           <div class="panel" style="margin-top:12px">
-            <div class="panel-head"><h2>Pools</h2></div>
+            <div class="panel-head"><h2>Top pairs by 24h volume</h2></div>
             <div class="table-wrap">
               <table class="data-table" id="poolsTable">
-                <thead><tr><th>Pair</th><th>DEX</th><th>TVL</th><th>Vol 24h</th><th>APR</th><th>Fee %</th></tr></thead>
+                <thead><tr><th>Pair</th><th>DEX</th><th>Liquidity</th><th>Vol 24h</th><th>24h %</th><th>Buys/Sells</th><th></th></tr></thead>
                 <tbody></tbody>
               </table>
             </div>
-          </div>
-        </section>
-
-        <!-- NEWS -->
-        <section id="sec-news" class="section" data-section="news">
-          <div class="page-head">
-            <div>
-              <h1>News</h1>
-              <p class="muted">Cardano + Midnight aggregator <span class="badge-demo">DEMO</span></p>
-            </div>
-          </div>
-          <div class="filters">
-            <select id="newsTag">
-              <option value="">All tags</option>
-              <option>Cardano</option><option>Midnight</option><option>DEX</option><option>Markets</option>
-            </select>
-            <select id="newsSource">
-              <option value="">All sources</option>
-            </select>
-          </div>
-          <div class="panel-grid" style="grid-template-columns:220px 1fr">
-            <section class="panel">
-              <div class="panel-head"><h2>Sources</h2></div>
-              <div id="newsSources"></div>
-            </section>
-            <section class="panel">
-              <div class="panel-head"><h2>Headlines</h2></div>
-              <div id="newsList"></div>
-            </section>
           </div>
         </section>
 
@@ -320,7 +245,7 @@
           <div class="page-head">
             <div>
               <h1>Midnight</h1>
-              <p class="muted">NIGHT · DUST generation · stake status · bridge model — the Float/TapTools gap <span class="badge-demo">DEMO</span></p>
+              <p class="muted">NIGHT · DUST generation model · bridge mental model</p>
             </div>
           </div>
           <div class="midnight-hero">
@@ -328,7 +253,7 @@
             <p class="muted" style="margin:0 0 12px;max-width:720px">Midnight is Cardano’s partner chain for shielded smart contracts. NIGHT is the native economic token; DUST is the renewable resource used to pay for shielded computation.</p>
             <div class="stat-grid" id="nightStats"></div>
           </div>
-          <div class="panel-grid equal">
+          <div style="margin-bottom:12px">
             <section class="panel">
               <div class="panel-head"><h2>DUST calculator</h2><span class="muted">5 DUST max capacity / NIGHT</span></div>
               <p class="muted" style="font-size:12px;margin:0 0 12px" id="dustNote"></p>
@@ -338,20 +263,11 @@
                   <input type="number" id="nightHoldings" value="10000" min="0" step="100" />
                 </div>
                 <div>
-                  <label for="genFactor">Gen factor (demo)</label>
+                  <label for="genFactor">Gen factor (tunable)</label>
                   <input type="number" id="genFactor" value="0.0146" min="0" step="0.001" />
                 </div>
               </div>
               <div class="calc-result" id="dustResult"></div>
-            </section>
-            <section class="panel">
-              <div class="panel-head"><h2>Stake address status</h2></div>
-              <p class="muted" style="font-size:12px;margin:0 0 10px">Enter a stake/addr — demo results for <code style="color:var(--accent-2)">stake1uydemo0nightdream</code> or <code style="color:var(--accent-2)">addr1qydemo0nightdream</code></p>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <input type="text" id="stakeInput" placeholder="stake1… or addr1…" style="flex:1;min-width:200px;background:var(--bg-input);border:1px solid var(--border);border-radius:8px;padding:10px 12px;outline:none" />
-                <button class="btn btn-primary" id="stakeCheckBtn" type="button">Check</button>
-              </div>
-              <div class="calc-result" id="stakeResult" style="display:none;margin-top:12px"></div>
             </section>
           </div>
           <div class="panel" style="margin-top:12px">
@@ -404,6 +320,13 @@
           </div>
         </section>
       </main>
+      <footer class="footer-bar">
+        <span>NightDream.io · live Cardano analytics · data: CoinGecko, DexScreener, Koios, MinSwap</span>
+        <span class="footer-links">
+          <a href="https://x.com/kshot9000" target="_blank" rel="noopener">@kshot9000</a>
+          <span class="muted" title="Pearl donations">PRL: prl1p62v09vuzyd8kdz9l23jaf3kph4wwx6jqcmhkkhg8lhr2qlxky8psu3zw9d</span>
+        </span>
+      </footer>
     </div>
   </div>
 
@@ -417,8 +340,11 @@
 
 <div class="toast-host" id="toastHost" aria-live="polite"></div>
 
-  <script src="./js/data.js"></script>
   <script src="./js/charts.js"></script>
+  <script src="./js/tokens.js"></script>
+  <script src="./js/live.js"></script>
+  <script src="./js/data.js"></script>
+  <script src="./js/wallet.js"></script>
   <script src="./js/app.js"></script>
 </body>
 </html>

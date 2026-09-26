@@ -501,3 +501,101 @@ img, svg { display: block; }
   padding: 1px 5px; border-radius: 3px; margin-left: 4px;
   background: rgba(255,176,32,0.15); color: var(--amber);
 }
+
+/* ——— Live rebuild additions ——— */
+.live-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 600; color: var(--green);
+  background: rgba(46,230,197,0.08); border: 1px solid rgba(46,230,197,0.25);
+  padding: 6px 10px; border-radius: 999px; width: fit-content; line-height: 1.3;
+}
+.live-pill .pulse {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
+  animation: pulse 1.6s ease infinite; flex-shrink: 0;
+}
+.flat { color: var(--muted); }
+img.token-avatar { object-fit: cover; }
+.token-banner .big-avatar img,
+.token-banner .big-avatar span.token-avatar {
+  width: 48px; height: 48px; border-radius: 14px; font-size: 16px;
+}
+
+/* skeletons */
+.skel {
+  display: block; border-radius: 6px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.09) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: skel 1.2s ease infinite;
+}
+@keyframes skel { to { background-position: -200% 0; } }
+
+/* key-value rows */
+.kv {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 8px 2px; border-bottom: 1px solid var(--border); font-size: 13px;
+}
+.kv:last-child { border-bottom: none; }
+.kv > span:first-child { color: var(--muted); font-size: 12px; }
+.kv code { font-family: var(--mono); font-size: 11px; }
+
+/* wallet */
+.wallet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 12px; }
+.wallet-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  padding: 18px 12px; border-radius: var(--radius);
+  background: var(--bg-elev); border: 1px solid var(--border); transition: .12s;
+}
+.wallet-card:hover { border-color: rgba(139,124,255,0.45); background: var(--bg-hover); }
+.wallet-card img { width: 40px; height: 40px; border-radius: 10px; }
+.install-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; justify-content: center; }
+.install-row a {
+  font-size: 12px; padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); text-transform: capitalize;
+}
+.install-row a:hover { color: var(--accent-2); border-color: rgba(46,230,197,0.35); }
+.row-flex { display: flex; gap: 8px; flex-wrap: wrap; }
+.row-flex .input { flex: 1; min-width: 200px; }
+.input {
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px 12px; outline: none; font-size: 13px;
+}
+.input:focus { border-color: rgba(139,124,255,0.45); }
+
+/* nfts */
+.nft-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; }
+.nft-card {
+  background: var(--bg-elev); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px; overflow: hidden;
+}
+.nft-art {
+  height: 84px; border-radius: 8px; display: grid; place-items: center;
+  font-size: 28px; font-weight: 800; color: #0a0b12;
+  background: linear-gradient(135deg, #8b7cff, #2ee6c5); margin-bottom: 8px;
+}
+.nft-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* buys vs sells */
+.bs-bar { display: flex; height: 10px; border-radius: 999px; overflow: hidden; background: var(--bg-elev); margin: 6px 0 10px; }
+.bs-buy { background: linear-gradient(90deg, #1fbf9e, #2ee6c5); }
+.bs-sell { background: linear-gradient(90deg, #ff6b7a, #d94f5e); }
+.bs-legend { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+
+.hover-readout { min-height: 20px; font-size: 12px; color: var(--muted); margin-top: 8px; font-variant-numeric: tabular-nums; }
+canvas.chart-lg { width: 100% !important; height: 100% !important; }
+
+.pf-mini-worth { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 8px; }
+.pf-mini-worth .muted { font-size: 12px; font-weight: 500; }
+
+/* footer */
+.footer-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 14px 20px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--faint);
+}
+.footer-links { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.footer-links a { color: var(--accent-2); }
+.footer-bar .muted { font-family: var(--mono); font-size: 10.5px; }
+
+@media (max-width: 860px) {
+  .footer-bar { padding: 12px; }
+}
