@@ -282,6 +282,16 @@
             <p class="muted" style="font-size:13px;max-width:800px;margin:0 auto;text-align:center" id="bridgeNote"></p>
           </div>
 
+          <div class="panel" style="margin-top:12px" id="mnBuildersTip">
+            <div class="panel-head"><h2>Builders tip · Compact auth</h2><span class="muted">MPS-0029</span></div>
+            <p class="muted" style="font-size:13px;margin:0;max-width:820px;line-height:1.55">
+              Never gate Compact authorization on <code>ownPublicKey()</code> alone — it is a prover-supplied witness.
+              Prefer witness-derived keys (<a href="https://github.com/midnightntwrk/example-bboard" target="_blank" rel="noopener">example-bboard</a>
+              / <code>create-mn-app --template bboard</code>). Interactive lab:
+              <a href="https://github.com/Kshot3000/Midnight-GrokBot-Agent/tree/main/apps/auth-lab" target="_blank" rel="noopener">MPS-0029 Auth Lab</a>
+              · <a href="https://github.com/midnightntwrk/midnight-improvement-proposals/blob/main/mps/mps-0029-compact-caller-identity.md" target="_blank" rel="noopener">MPS-0029</a>.
+            </p>
+          </div>
           <div class="panel" style="margin-top:12px" id="mnNetPanel">
             <div class="panel-head">
               <h2>Midnight network</h2>
