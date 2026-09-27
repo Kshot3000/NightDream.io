@@ -1,2 +1,2 @@
 # ads.txt — NightDream.xyz (AdSense)
-google.com, pub-3316742664595468, DIRECT, f75f9b6736ff2d3f
+google.com, pub-3316742664595468, DIRECT, f08c47fec0942fa0
