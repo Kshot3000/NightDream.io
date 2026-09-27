@@ -1,10 +1,10 @@
-# NightDream.io — Cardano + Midnight Analytics Desk
+# NightDream.xyz — Cardano + Midnight Analytics Desk
 
 Live Cardano market analytics in the spirit of the late TapTools: token screener, token deep-dives with
 candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), and a Midnight (NIGHT/DUST) desk.
 
 
-**Live site:** https://kshot3000.github.io/NightDream.io/
+**Live site:** https://kshot3000.github.io/NightDream.xyz/
 
 ## What it does
 
@@ -39,8 +39,8 @@ figures are shown anywhere.
 ## Run locally
 
 ```bash
-git clone https://github.com/Kshot3000/NightDream.io
-cd NightDream.io
+git clone https://github.com/Kshot3000/NightDream.xyz
+cd NightDream.xyz
 python3 -m http.server 8000
 # open http://localhost:8000/
 ```
@@ -70,7 +70,7 @@ js/app.js         router + page renderers
 
 ## Custom domain (DNS)
 
-`nightdream.io` should CNAME/A to GitHub Pages — see **[docs/DNS.md](docs/DNS.md)**.
+`nightdream.xyz` should CNAME/A to GitHub Pages — see **[docs/DNS.md](docs/DNS.md)**.
 The apex did not resolve as of 2026-09-25; the GitHub Pages URL above is the working site.
 
 ## Data sources (Midnight network)

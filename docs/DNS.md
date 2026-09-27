@@ -1,6 +1,6 @@
-# NightDream.io DNS → GitHub Pages
+# NightDream.xyz DNS → GitHub Pages
 
-**Live today:** https://kshot3000.github.io/NightDream.io/
+**Live today:** https://kshot3000.github.io/NightDream.xyz/
 
 **Custom domain goal:** https://nightdream.xyz/
 

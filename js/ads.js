@@ -1,4 +1,4 @@
-/* NightDream.io — advertising layer (AdSense-ready).
+/* NightDream.xyz — advertising layer (AdSense-ready).
  *
  * HOW TO GO LIVE:
  * 1. Apply at https://www.google.com/adsense/ and get approved.

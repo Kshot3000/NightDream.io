@@ -85,7 +85,7 @@
     closeSidebar();
     $$(".section").forEach((p) => p.classList.toggle("visible", p.dataset.section === currentRoute));
     $$("[data-route]").forEach((a) => a.classList.toggle("active", a.dataset.route === currentRoute));
-    document.title = "NightDream.io — " + currentRoute.charAt(0).toUpperCase() + currentRoute.slice(1);
+    document.title = "NightDream.xyz — " + currentRoute.charAt(0).toUpperCase() + currentRoute.slice(1);
     if (currentRoute === "overview") renderOverview();
     if (currentRoute === "markets") renderMarkets();
     if (currentRoute === "token") renderToken(param);

@@ -1,4 +1,4 @@
-# Ad revenue setup — NightDream.io
+# Ad revenue setup — NightDream.xyz
 
 The site is **ad-ready**. Slots are in place; nothing renders until you add a
 publisher ID.

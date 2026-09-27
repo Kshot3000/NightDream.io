@@ -1,4 +1,4 @@
-/* NightDream.io — lightweight canvas charts (no deps) */
+/* NightDream.xyz — lightweight canvas charts (no deps) */
 window.NDCharts = (function () {
   const COLORS = {
     line: "#8b7cff",
