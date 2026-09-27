@@ -1,0 +1,160 @@
+/* NightDream.xyz — visual FX layer (v2 "pop" pass).
+ * Living background canvas, cinematic hero, glow hover states.
+ * Loaded after styles.css; overrides live here so the base theme stays clean.
+ */
+
+/* ——— Living background ——— */
+#bg-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.9;
+}
+#bg-dim {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(1200px 700px at 50% 30%, transparent 40%, rgba(4,5,9,0.55) 100%),
+    linear-gradient(180deg, rgba(4,5,9,0.35) 0%, transparent 25%, transparent 70%, rgba(4,5,9,0.45) 100%);
+}
+.app {
+  position: relative;
+  z-index: 1;
+  background:
+    radial-gradient(900px 480px at 8% -8%, rgba(139,124,255,0.10), transparent 55%),
+    radial-gradient(700px 400px at 92% 0%, rgba(46,230,197,0.06), transparent 50%),
+    transparent;
+}
+
+/* ——— Hero: cinematic art + animated gradient title ——— */
+.hero {
+  background: #0a0b16 url("../assets/hero-cardano.webp") center/cover no-repeat;
+  box-shadow: 0 0 60px rgba(58,110,255,0.18), var(--shadow);
+  border-color: rgba(120,140,255,0.22);
+}
+.hero::after {
+  background: linear-gradient(100deg, rgba(6,7,12,0.92) 15%, rgba(6,7,12,0.55) 50%, rgba(6,7,12,0.25) 100%);
+}
+.hero-inner h1 {
+  background: linear-gradient(92deg, #ffffff 20%, #9db4ff 45%, #2ee6c5 70%, #ffffff 95%);
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: hero-sheen 9s ease-in-out infinite;
+  filter: drop-shadow(0 2px 18px rgba(58,110,255,0.35));
+}
+@keyframes hero-sheen {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 100% center; }
+}
+.hero-badge {
+  box-shadow: 0 0 18px rgba(46,230,197,0.25);
+  animation: badge-float 5s ease-in-out infinite;
+}
+@keyframes badge-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* ——— Pop: cards lift + glow on hover ——— */
+.panel, .stat-card, .eco-chip {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(120,140,255,0.35);
+  box-shadow: 0 10px 28px rgba(0,0,0,0.45), 0 0 22px rgba(58,110,255,0.16);
+}
+.panel:hover {
+  border-color: rgba(120,140,255,0.22);
+  box-shadow: 0 10px 32px rgba(0,0,0,0.5), 0 0 26px rgba(58,110,255,0.10);
+}
+.eco-chip:hover {
+  transform: translateY(-2px) scale(1.03);
+  border-color: rgba(46,230,197,0.4);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 18px rgba(46,230,197,0.18);
+}
+.btn-primary {
+  background: linear-gradient(135deg, #6d5cff, #2ee6c5);
+  box-shadow: 0 4px 22px rgba(109,92,255,0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.1);
+  box-shadow: 0 6px 30px rgba(109,92,255,0.55), 0 0 20px rgba(46,230,197,0.25);
+}
+
+/* ——— Midnight desk: cinematic art ——— */
+.midnight-hero {
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(139,124,255,0.35);
+  box-shadow: 0 0 40px rgba(139,124,255,0.12), var(--shadow);
+}
+.midnight-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("../assets/midnight-desk.webp") center 30%/cover no-repeat;
+  opacity: 0.4;
+  pointer-events: none;
+}
+.midnight-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, rgba(8,8,16,0.9) 10%, rgba(8,8,16,0.45) 55%, rgba(8,8,16,0.2) 100%);
+  pointer-events: none;
+}
+.midnight-hero > * { position: relative; z-index: 1; }
+
+/* ——— DEX banner ——— */
+.dex-banner {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(46,230,197,0.25);
+  border-radius: 16px;
+  min-height: 150px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-end;
+  background: url("../assets/dex-liquidity.webp") center 35%/cover no-repeat;
+  box-shadow: 0 0 40px rgba(46,230,197,0.10), var(--shadow);
+}
+.dex-banner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6,8,14,0.15) 0%, rgba(6,8,14,0.82) 100%);
+  pointer-events: none;
+}
+.dex-banner-inner {
+  position: relative;
+  z-index: 1;
+  padding: 16px 18px;
+}
+.dex-banner-inner h2 {
+  margin: 0 0 4px;
+  font-size: 17px;
+  text-shadow: 0 2px 12px rgba(0,0,0,0.8);
+}
+.dex-banner-inner p { margin: 0; font-size: 12px; color: var(--muted); }
+
+/* ——— Section titles get a glow underline ——— */
+.page-head h1, .panel-head h2 {
+  text-shadow: 0 0 24px rgba(58,110,255,0.25);
+}
+
+/* ——— Respect reduced motion ——— */
+@media (prefers-reduced-motion: reduce) {
+  .hero-inner h1 { animation: none; }
+  .hero-badge { animation: none; }
+  #bg-canvas { display: none; }
+}

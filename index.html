@@ -23,11 +23,14 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="./css/styles.css" />
+  <link rel="stylesheet" href="./css/fx.css" />
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3316742664595468"
      crossorigin="anonymous"></script>
   <meta name="google-adsense-account" content="ca-pub-3316742664595468" />
 </head>
 <body>
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <div id="bg-dim" aria-hidden="true"></div>
   <div class="sidebar-overlay" id="sidebarOverlay"></div>
   <div class="app">
     <aside class="sidebar" id="sidebar" aria-label="Primary">
@@ -260,6 +263,12 @@
               <p class="muted">Live pair data from DexScreener · <span id="dexNote"></span></p>
             </div>
           </div>
+          <div class="dex-banner" aria-hidden="true">
+            <div class="dex-banner-inner">
+              <h2>Where Cardano trades</h2>
+              <p>Live liquidity across MinSwap, SundaeSwap, WingRiders and more.</p>
+            </div>
+          </div>
           <div class="stat-grid" id="dexPulse"></div>
           <div class="panel-grid equal">
             <section class="panel">
@@ -427,6 +436,7 @@
   <script src="./js/data.js"></script>
   <script src="./js/wallet.js"></script>
   <script src="./js/app.js"></script>
+  <script src="./js/bg.js"></script>
   <script src="./js/ads.js"></script>
 </body>
 </html>
