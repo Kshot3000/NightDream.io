@@ -2,14 +2,13 @@
 
 **Live today:** https://kshot3000.github.io/NightDream.io/
 
-**Custom domain goal:** https://nightdream.io/
+**Custom domain goal:** https://nightdream.xyz/
 
-As of 2026-09-25 the apex `nightdream.io` did **not** resolve (`NXDOMAIN`).
-Point DNS at GitHub Pages to activate the pretty domain.
+Domain purchased 2026-09-27. As of purchase the apex had no DNS records yet — add the records below to activate.
 
 ## Recommended records
 
-At your DNS registrar for `nightdream.io`:
+At your DNS registrar for `nightdream.xyz`:
 
 | Type | Name | Value |
 | --- | --- | --- |
@@ -23,16 +22,16 @@ At your DNS registrar for `nightdream.io`:
 | `AAAA` | `@` | `2606:50c0:8003::153` |
 | `CNAME` | `www` | `kshot3000.github.io.` |
 
-Then in GitHub → **Settings → Pages → Custom domain** set `nightdream.io` and enable **Enforce HTTPS** after propagation.
+Then in GitHub → **Settings → Pages → Custom domain** set `nightdream.xyz` and enable **Enforce HTTPS** after propagation.
 
-Optional: add a root `CNAME` file containing `nightdream.io` **only after** DNS is ready (early CNAME can break the `*.github.io` URL).
+Optional: add a root `CNAME` file containing `nightdream.xyz` **only after** DNS is ready (early CNAME can break the `*.github.io` URL).
 
 ## Verify
 
 ```bash
-dig +short nightdream.io A
-dig +short www.nightdream.io CNAME
-curl -I https://nightdream.io/
+dig +short nightdream.xyz A
+dig +short www.nightdream.xyz CNAME
+curl -I https://nightdream.xyz/
 ```
 
 ## Branding
