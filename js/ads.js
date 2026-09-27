@@ -14,7 +14,7 @@
 (function () {
   "use strict";
 
-  var ADS_CLIENT = ""; // <-- paste your ca-pub-XXXXXXXXXXXXXXXX here
+  var ADS_CLIENT = "ca-pub-3316742664595468"; // AdSense publisher ID (live)
 
   // Optional per-slot ad unit IDs (leave empty for Auto ads / default units).
   var AD_UNITS = {
