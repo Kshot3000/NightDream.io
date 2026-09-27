@@ -1,9 +1,14 @@
 # Ad revenue setup — NightDream.xyz
 
-The site is **ad-ready**. Slots are in place; nothing renders until you add a
-publisher ID.
+The site is **LIVE with AdSense** (verified 2026-09-27).
 
-## Slots (all CLS-safe, hidden until ads are enabled)
+- Publisher ID: `ca-pub-3316742664595468`
+- AdSense script tag + `google-adsense-account` meta tag are in `<head>` (index.html).
+- `ads.txt` at root: `google.com, pub-3316742664595468, DIRECT, f08c47fec0942fa0`
+- `js/ads.js` fills the slots below automatically (it skips injecting the library
+  tag since `<head>` already has it — never load it twice).
+
+## Slots (all CLS-safe)
 
 | Slot | Location |
 | --- | --- |
@@ -14,17 +19,6 @@ publisher ID.
 | `ft-top` | Above the footer, every page |
 
 Add more anywhere with: `<div class="ad-slot" data-ad="unique-key" aria-hidden="true"></div>`
-
-## Going live (Google AdSense)
-
-1. Apply at <https://www.google.com/adsense/> using the live site URL.
-   Approval usually takes a few days; AdSense wants real content and traffic,
-   so keep the site live and linked from your X post.
-2. In your AdSense account find your publisher ID: `ca-pub-XXXXXXXXXXXXXXXX`.
-3. Paste it into `js/ads.js` → `ADS_CLIENT`.
-4. Update `ads.txt` at the repo root:
-   `google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f75f9b6736ff2d3f`
-5. Commit + push. Slots fill automatically on next deploy.
 
 ## Later (when traffic grows)
 

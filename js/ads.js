@@ -1,11 +1,11 @@
-/* NightDream.xyz — advertising layer (AdSense-ready).
+/* NightDream.xyz — advertising layer (AdSense LIVE since 2026-09-27).
  *
- * HOW TO GO LIVE:
- * 1. Apply at https://www.google.com/adsense/ and get approved.
- * 2. Put your publisher ID below (ca-pub-XXXXXXXXXXXXXXXX).
- * 3. Make sure /ads.txt contains:  google.com, pub-<YOUR_ID>, DIRECT, f75f9b6736ff2d3f
- * 4. Commit + push. Slots appear automatically wherever <div class="ad-slot" data-ad="...">
- *    exists. While ADS_CLIENT is empty, every slot stays hidden and no ad script loads.
+ * Publisher: ca-pub-3316742664595468 (verified).
+ * The AdSense library tag + google-adsense-account meta tag live in <head>
+ * (index.html) per Google's instructions; this loader only fills the slots.
+ * It injects the library tag itself ONLY as a fallback if <head> lacks it —
+ * never load adsbygoogle.js twice.
+ * /ads.txt: google.com, pub-3316742664595468, DIRECT, f08c47fec0942fa0
  *
  * Ad slots are plain containers; this loader injects the AdSense tag + <ins> units.
  * Keep slots out of the way of charts/tables so layout never jumps (CLS-safe:
