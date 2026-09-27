@@ -4,7 +4,7 @@ Live Cardano market analytics in the spirit of the late TapTools: token screener
 candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), and a Midnight (NIGHT/DUST) desk.
 
 
-**Live site:** https://kshot3000.github.io/NightDream.xyz/
+**Live site:** https://nightdream.xyz/
 
 ## What it does
 
