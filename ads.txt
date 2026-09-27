@@ -1,0 +1,2 @@
+# ads.txt — replace PUB_ID with your AdSense publisher ID, then update js/ads.js
+google.com, pub-PUB_ID, DIRECT, f75f9b6736ff2d3f
