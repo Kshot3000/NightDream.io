@@ -61,6 +61,24 @@
     return `<span class="${cls}">${ch}</span>`;
   };
 
+  /* DEX venue logos (self-hosted ecosystem assets) keyed by DexScreener dexId */
+  const DEX_LOGOS = {
+    minswap: "minswap.png",
+    sundaeswap: "sundaeswap.png",
+    wingriders: "wingriders.png",
+    vyfi: "vyfi.png",
+  };
+  function dexCell(name) {
+    const key = String(name || "").toLowerCase().replace(/[^a-z]/g, "");
+    const file = DEX_LOGOS[key];
+    const img = file ? `<img src="./assets/ecosystem/${file}" alt="" loading="lazy" />` : "";
+    return `<span class="dex-cell">${img}<span>${name || "—"}</span></span>`;
+  }
+  function liqBar(liq, maxLiq) {
+    const pct = maxLiq > 0 ? ((liq || 0) / maxLiq * 100).toFixed(1) : 0;
+    return `<div>${fmt.usd(liq)}</div><div class="liq-bar"><i style="width:${pct}%"></i></div>`;
+  }
+
   const skel = (n, h) => Array.from({ length: n }).map(() =>
     `<div class="skel" style="height:${h || 14}px;margin:8px 0"></div>`).join("");
   const skelCards = (n) => Array.from({ length: n }).map(() =>
@@ -163,9 +181,9 @@
         <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</span>
       </div>`).join("");
     const trending = [...T].filter((t) => t.ticker !== "ADA").sort((a, b) => (b.vol || 0) - (a.vol || 0)).slice(0, 5);
-    $("#ovTrending").innerHTML = trending.map((t) => `
+    $("#ovTrending").innerHTML = trending.map((t, i) => `
       <div class="list-row" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">
-        <div class="token-cell">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div>
+        <div class="token-cell"><span class="rank-badge${i < 3 ? " top" : ""}">#${i + 1}</span>${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div>
         <div style="text-align:right"><div>${fmt.usd(t.price, 6)}</div><div class="${chClass(t.ch24)}" style="font-size:12px">${fmt.pct(t.ch24)}</div></div>
       </div>`).join("");
     renderWatchPanel();
@@ -176,8 +194,9 @@
     getDexAgg().then((agg) => {
       if (currentRoute !== "overview") return;
       const rows = agg.pairs.slice(0, 5);
+      const maxLiq = Math.max(...rows.map((p) => p.liq || 0), 1);
       $("#ovPools").querySelector("tbody").innerHTML = rows.map((p) => `
-        <tr><td><strong>${p.pair}</strong></td><td>${p.dex}</td><td>${fmt.usd(p.liq)}</td><td>${fmt.usd(p.vol24)}</td></tr>`).join("")
+        <tr><td><strong>${p.pair}</strong></td><td>${dexCell(p.dex)}</td><td>${liqBar(p.liq, maxLiq)}</td><td>${fmt.usd(p.vol24)}</td></tr>`).join("")
         || `<tr><td colspan="4" class="muted">No pair data.</td></tr>`;
     });
   }
@@ -612,12 +631,25 @@
   /* ——— DEX ——— */
   async function renderDex() {
     $("#dexList").innerHTML = skel(6);
+    $("#dexPulse").innerHTML = skelCards(4);
     $("#poolsTable").querySelector("tbody").innerHTML = `<tr><td colspan="7">${skel(6)}</td></tr>`;
     const dn = $("#dexNote");
     if (dn) dn.textContent = "Aggregating top pairs from DexScreener…";
     const agg = await getDexAgg();
     if (currentRoute !== "dex") return;
-    const totVol = agg.dexes.reduce((s, d) => s + d.vol24, 0) || 1;
+    const totVolRaw = agg.dexes.reduce((s, d) => s + d.vol24, 0);
+    const totVol = totVolRaw || 1;
+    const totLiq = agg.pairs.reduce((s, p) => s + (p.liq || 0), 0);
+    const totPairs = agg.dexes.reduce((s, d) => s + (d.pairs || 0), 0);
+    const top = agg.dexes[0];
+    const pstat = (label, value, sub) => `
+      <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
+      <div class="stat-sub">${sub}</div></div>`;
+    $("#dexPulse").innerHTML =
+      pstat("Tracked DEX volume 24h", totVolRaw ? fmt.usd(totVolRaw) : "—", "live · DexScreener") +
+      pstat("Liquidity tracked", totLiq ? fmt.usd(totLiq) : "—", agg.pairs.length + " top pairs") +
+      pstat("Pairs tracked", totPairs ? fmt.num(totPairs) : "—", agg.dexes.length + " venues") +
+      pstat("Top venue", top ? top.name : "—", top && totVolRaw ? ((top.vol24 / totVol) * 100).toFixed(1) + "% of volume" : "—");
     requestAnimationFrame(() => {
       const b = $("#dexVolChart"), d = $("#dexShareChart");
       if (!b || !d) return;
@@ -629,10 +661,12 @@
       <span><span><i class="dot-swatch" style="background:${colors[i % colors.length]}"></i>${d.name}</span>
       <span>${((d.vol24 / totVol) * 100).toFixed(1)}%</span></span>`).join("");
     $("#dexList").innerHTML = agg.dexes.map((d) => `
-      <div class="list-row"><strong>${d.name}</strong><span>${fmt.usd(d.vol24)} · ${d.pairs} pairs</span></div>`).join("")
+      <div class="list-row">${dexCell(d.name)}<span>${fmt.usd(d.vol24)} · ${d.pairs} pairs</span></div>`).join("")
       || `<div class="empty">No DEX data available.</div>`;
-    $("#poolsTable").querySelector("tbody").innerHTML = agg.pairs.slice(0, 20).map((p) => `
-      <tr><td><strong>${p.pair}</strong></td><td>${p.dex}</td><td>${fmt.usd(p.liq)}</td>
+    const vis = agg.pairs.slice(0, 20);
+    const maxLiq = Math.max(...vis.map((p) => p.liq || 0), 1);
+    $("#poolsTable").querySelector("tbody").innerHTML = vis.map((p) => `
+      <tr><td><strong>${p.pair}</strong></td><td>${dexCell(p.dex)}</td><td>${liqBar(p.liq, maxLiq)}</td>
       <td>${fmt.usd(p.vol24)}</td><td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
       <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
       <td><a href="${p.url}" target="_blank" rel="noopener">View ↗</a></td></tr>`).join("");
