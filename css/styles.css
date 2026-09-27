@@ -294,6 +294,8 @@ img, svg { display: block; }
   background: linear-gradient(135deg, #8b7cff, #2ee6c5); color: #0a0b12;
 }
 .token-banner h1 { margin: 0; font-size: 22px; }
+.token-picker { background: rgba(255,255,255,0.06); border: 1px solid rgba(139,124,255,0.25); border-radius: 10px; padding: 8px 10px; font-size: 13px; max-width: 230px; }
+.token-picker:focus { border-color: rgba(139,124,255,0.45); outline: none; }
 .token-banner .price-row { display: flex; align-items: baseline; gap: 10px; margin-top: 4px; }
 .token-banner .price { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
 .links-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }

@@ -333,7 +333,7 @@
             <span class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)} 7d</span></div>
           <div class="links-row" id="tokenLinks"></div>
         </div>
-        <div><span class="tag">${t.category}</span> ${t.rank ? `<span class="muted" style="font-size:12px">Rank #${t.rank}</span>` : ""}</div>
+        <div><select id="tokenPicker" class="token-picker" aria-label="Choose token"></select><div style="margin-top:8px"><span class="tag">${t.category}</span> ${t.rank ? `<span class="muted" style="font-size:12px">Rank #${t.rank}</span>` : ""}</div></div>
       </div>
       <div class="token-stats-row" id="tokenStatRow"></div>
       <div class="panel-grid">
@@ -370,6 +370,14 @@
         <section class="panel"><div class="panel-head"><h2>About</h2></div><div id="tokenAbout">${skel(4)}</div></section>
       </div>`;
     host.querySelector("[data-star]").addEventListener("click", (e) => toggleWatch(e.target.dataset.star));
+    const picker = host.querySelector("#tokenPicker");
+    if (picker) {
+      const seen = new Map();
+      ND.TOKENS.forEach((x) => { if (!seen.has(x.ticker)) seen.set(x.ticker, x); });
+      picker.innerHTML = [...seen.values()].sort((a, b) => a.ticker.localeCompare(b.ticker))
+        .map((x) => `<option value="${x.ticker}"${x.ticker === t.ticker ? " selected" : ""}>${x.ticker} — ${x.name}</option>`).join("");
+      picker.addEventListener("change", (e) => { location.hash = "#token/" + e.target.value; });
+    }
 
     const statRow = (rows) => {
       $("#tokenStatRow").innerHTML = rows.map(([k, v]) =>
