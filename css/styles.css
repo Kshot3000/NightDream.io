@@ -116,7 +116,7 @@ img, svg { display: block; }
 .search:focus-within { border-color: rgba(139,124,255,0.45); }
 .search-icon { color: var(--faint); }
 .search input {
-  flex: 1; background: none; border: none; outline: none; height: 100%;
+  flex: 1; min-width: 0; background: none; border: none; outline: none; height: 100%;
   font-size: 13px; color: var(--text);
 }
 .search input::placeholder { color: var(--faint); }
@@ -728,6 +728,12 @@ canvas.chart-lg { width: 100% !important; height: 100% !important; }
 .hero-cta .btn { padding: 10px 20px; font-size: 14px; }
 @media (max-width: 640px) {
   .hero-inner { padding: 30px 22px; }
+  /* ~390px topbar: menu + search + freshness + chip + connect button overflowed
+     the viewport (search input's intrinsic min-width blocked flex shrink).
+     Give the search room: hide the freshness caption, tighten gaps. */
+  .topbar { padding: 0 12px; gap: 8px; }
+  .topbar-actions { gap: 8px; }
+  .freshness { display: none; }
 }
 
 /* ---------- Ad slots (hidden until ads enabled) ---------- */
