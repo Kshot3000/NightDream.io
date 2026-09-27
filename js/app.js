@@ -384,7 +384,7 @@
         `<div class="token-stat"><div class="lbl">${k}</div><div class="val">${v}</div></div>`).join("");
     };
     statRow([
-      ["Mcap", fmt.usd(t.mcap)], ["FDV", fmt.usd(t.fdv)],
+      ["Mcap", t.mcap ? fmt.usd(t.mcap) : "—"], ["FDV", t.fdv ? fmt.usd(t.fdv) : "—"],
       ["Vol 24h", fmt.usd(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
       ["ATL", t.atl ? fmt.usd(t.atl, 6) : "—"], ["Category", t.category],
     ]);
@@ -411,7 +411,7 @@
         : `<p class="muted">No description available.</p>`;
       const md = d.market_data || {};
       statRow([
-        ["Mcap", fmt.usd(t.mcap)], ["FDV", fmt.usd(t.fdv)],
+        ["Mcap", t.mcap ? fmt.usd(t.mcap) : "—"], ["FDV", t.fdv ? fmt.usd(t.fdv) : "—"],
         ["Vol 24h", fmt.usd(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
         ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
         ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],
@@ -460,6 +460,9 @@
       if (currentToken !== t || !$("#tokenPage")) return;
       const bs = $("#buysSells"), pt = $("#tokenPairsTable")?.querySelector("tbody");
       if (!dex) {
+        // ADA is the native asset: DexScreener has no per-token endpoint for it,
+        // so surface the top ADA-quoted pairs from the shared DEX aggregation.
+        if (t.ticker === "ADA") { renderAdaPairs(bs, pt, t); return; }
         if (bs) bs.innerHTML = `<p class="muted">No DEX pair data found.</p>`;
         if (pt) pt.innerHTML = `<tr><td colspan="8" class="muted">No DEX pairs found for this token.</td></tr>`;
         return;
@@ -481,6 +484,39 @@
         <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
         <td><a href="${p.url}" target="_blank" rel="noopener">Trade ↗</a></td></tr>`).join("");
     });
+  }
+
+  async function renderAdaPairs(bs, pt, t) {
+    const agg = await getDexAgg().catch(() => null);
+    if (currentToken !== t || !$("#tokenPage")) return;
+    const adaPairs = ((agg && agg.pairs) || [])
+      .filter((p) => /(^|\/)ADA(\/|$)/.test(p.pair || ""))
+      .sort((a, b) => (b.liq || 0) - (a.liq || 0))
+      .slice(0, 8);
+    if (!adaPairs.length) {
+      if (bs) bs.innerHTML = `<p class="muted">No DEX pair data found.</p>`;
+      if (pt) pt.innerHTML = `<tr><td colspan="8" class="muted">No DEX pairs found for this token.</td></tr>`;
+      return;
+    }
+    let buys = 0, sells = 0, vol = 0;
+    adaPairs.forEach((p) => { buys += p.buys24 || 0; sells += p.sells24 || 0; vol += p.vol24 || 0; });
+    const tot = buys + sells;
+    const bp = tot ? (buys / tot) * 100 : 50;
+    if (bs) bs.innerHTML = `
+      <div class="bs-bar"><span class="bs-buy" style="width:${bp}%"></span><span class="bs-sell" style="width:${100 - bp}%"></span></div>
+      <div class="bs-legend">
+        <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.num(buys)} buys</span>
+        <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.num(sells)} sells</span>
+        <span class="muted">${fmt.usd(vol)} 24h vol</span>
+      </div>
+      <div class="muted" style="font-size:11px;margin-top:6px">Top ADA pairs across tracked tokens · DexScreener</div>`;
+    if (pt) pt.innerHTML = adaPairs.map((p) => `
+      <tr><td><strong>${p.dex}</strong></td><td>${p.pair}</td>
+      <td>${p.priceUsd ? fmt.usd(p.priceUsd, 6) : "—"}</td>
+      <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
+      <td>${fmt.usd(p.vol24)}</td><td>${fmt.usd(p.liq)}</td>
+      <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
+      <td><a href="${p.url}" target="_blank" rel="noopener">Trade ↗</a></td></tr>`).join("");
   }
 
   async function paintTokenChart(t) {
@@ -735,7 +771,8 @@
   }
   function updateDustCalc() {
     const holdings = Number($("#nightHoldings")?.value || 0);
-    const factor = Number($("#genFactor")?.value || 0.0146);
+    // round to 4dp: keeps float artifacts (e.g. 0.014600000344216824) out of the math
+    const factor = Number(Number($("#genFactor")?.value || 0.0146).toFixed(4));
     const el = $("#dustResult");
     if (!el) return;
     const cap = holdings * ND.MIDNIGHT.dustPerNightMax;
