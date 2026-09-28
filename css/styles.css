@@ -747,6 +747,10 @@ canvas.chart-lg { width: 100% !important; height: 100% !important; }
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-actions { gap: 8px; }
   .freshness { display: none; }
+  /* iOS Safari auto-zooms the page when an input with font-size < 16px
+     receives focus — hold the 16px floor on focusable fields so the
+     viewport stays put on the filter bar and the command palette. */
+  .cmdk input, .filters input, .filters select { font-size: 16px; }
 }
 
 /* ---------- Ad slots (hidden until ads enabled) ---------- */
