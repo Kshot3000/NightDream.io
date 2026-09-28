@@ -83,6 +83,20 @@
     `<div class="skel" style="height:${h || 14}px;margin:8px 0"></div>`).join("");
   const skelCards = (n) => Array.from({ length: n }).map(() =>
     `<div class="stat-card"><div class="skel" style="height:11px;width:55%"></div><div class="skel" style="height:22px;width:75%;margin-top:10px"></div><div class="skel" style="height:11px;width:45%;margin-top:8px"></div></div>`).join("");
+  /* Chart error overlay (canvas stays, dimmed): message + retry inside .chart-wrap */
+  function chartError(canvas, msg, retry) {
+    const wrap = canvas?.closest(".chart-wrap");
+    if (!wrap) return;
+    canvas.style.opacity = "0.25";
+    let ov = wrap.querySelector(".chart-error");
+    if (!ov) { ov = document.createElement("div"); ov.className = "chart-error"; wrap.appendChild(ov); }
+    ov.innerHTML = `<div class="empty" style="padding:16px"><strong>${msg}</strong><br><button class="btn btn-sm" type="button">Retry</button></div>`;
+    ov.querySelector("button")?.addEventListener("click", (e) => { e.stopPropagation(); clearChartError(canvas); retry(); });
+  }
+  function clearChartError(canvas) {
+    canvas.style.opacity = "";
+    canvas.closest(".chart-wrap")?.querySelector(".chart-error")?.remove();
+  }
 
   /* ——— Router ——— */
   function parseHash() {
@@ -207,7 +221,8 @@
     if (!cv) return;
     const days = range === "24H" ? 1 : range === "7D" ? 7 : 30;
     const series = await LIVE.chart(cg, days);
-    if (!series || currentRoute !== "overview") return;
+    if (currentRoute !== "overview" || !$(which === "ADA" ? "#ovAdaChart" : "#ovNightChart")) return;
+    if (!series) { chartError(cv, `${which} chart unavailable`, () => { if (currentRoute === "overview") drawOverviewChart(which, range); }); return; }
     const opts = which === "NIGHT"
       ? { range, color: "#2ee6c5", fill: "rgba(46,230,197,0.10)" }
       : { range };
@@ -522,6 +537,7 @@
   async function paintTokenChart(t) {
     const cv = $("#tokenChart");
     if (!cv) return;
+    clearChartError(cv);
     const range = chartRanges.TOKEN;
     if (chartType === "candle") {
       const candles = await LIVE.ohlc(t.cg, range);
@@ -538,7 +554,8 @@
       toast("Candles unavailable for this range — line chart shown");
     }
     const series = await LIVE.chart(t.cg, range);
-    if (currentToken !== t || !$("#tokenChart") || !series) return;
+    if (currentToken !== t || !$("#tokenChart")) return;
+    if (!series) { chartError($("#tokenChart"), "Price chart unavailable", () => { if (currentToken === t) paintTokenChart(t); }); return; }
     NDCharts.drawLineChart($("#tokenChart"), series, {
       range,
       onHover: (p) => {
