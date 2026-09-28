@@ -215,12 +215,12 @@
     const c24 = (t) => [ "price", fmt.usd(t.price, t.price < 1 ? 4 : 2), fmt.pct(t.ch24) + " 24h", t.ch24 ];
     $("#overviewStats").innerHTML =
       card(ada, c24(ada)) +
-      (ada ? `<div class="stat-card"><div class="stat-label">ADA · mcap</div><div class="stat-value">${fmt.usd(ada.mcap)}</div><div class="stat-sub">${ada.rank ? "Rank #" + ada.rank : ""}</div></div>
-      <div class="stat-card"><div class="stat-label">ADA · vol 24h</div><div class="stat-value">${fmt.usd(ada.vol)}</div><div class="stat-sub ${chClass(ada.ch7d)}">${fmt.pct(ada.ch7d)} 7d</div></div>
+      (ada ? `<div class="stat-card"><div class="stat-label">ADA · mcap</div><div class="stat-value" title="${fmt.exactUsd(ada.mcap)}">${fmt.usd(ada.mcap)}</div><div class="stat-sub">${ada.rank ? "Rank #" + ada.rank : ""}</div></div>
+      <div class="stat-card"><div class="stat-label">ADA · vol 24h</div><div class="stat-value" title="${fmt.exactUsd(ada.vol)}">${fmt.usd(ada.vol)}</div><div class="stat-sub ${chClass(ada.ch7d)}">${fmt.pct(ada.ch7d)} 7d</div></div>
       <div class="stat-card"><div class="stat-label">Tracked assets</div><div class="stat-value">${T.length}</div><div class="stat-sub">CoinGecko universe</div></div>` : "") +
       card(night, c24(night)) +
-      (night ? `<div class="stat-card"><div class="stat-label">NIGHT · mcap</div><div class="stat-value">${fmt.usd(night.mcap)}</div><div class="stat-sub">${night.rank ? "Rank #" + night.rank : ""}</div></div>
-      <div class="stat-card"><div class="stat-label">NIGHT · vol 24h</div><div class="stat-value">${fmt.usd(night.vol)}</div><div class="stat-sub ${chClass(night.ch7d)}">${fmt.pct(night.ch7d)} 7d</div></div>
+      (night ? `<div class="stat-card"><div class="stat-label">NIGHT · mcap</div><div class="stat-value" title="${fmt.exactUsd(night.mcap)}">${fmt.usd(night.mcap)}</div><div class="stat-sub">${night.rank ? "Rank #" + night.rank : ""}</div></div>
+      <div class="stat-card"><div class="stat-label">NIGHT · vol 24h</div><div class="stat-value" title="${fmt.exactUsd(night.vol)}">${fmt.usd(night.vol)}</div><div class="stat-sub ${chClass(night.ch7d)}">${fmt.pct(night.ch7d)} 7d</div></div>
       <div class="stat-card"><div class="stat-label">NIGHT · ATH</div><div class="stat-value">${night.ath ? fmt.usd(night.ath, 4) : "—"}</div><div class="stat-sub"><a href="#midnight">Midnight desk →</a></div></div>` : "");
     paintFresh();
     drawOverviewChart("ADA", chartRanges.ADA);
