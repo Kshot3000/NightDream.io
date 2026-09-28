@@ -125,6 +125,12 @@
     if (currentRoute === "dex") renderDex();
     if (currentRoute === "midnight") renderMidnight();
     if (currentRoute === "watchlist") renderWatchlist();
+    syncToggleAria(); // reflect .active toggle state to assistive tech
+  }
+
+  // a11y: mirror .active toggle-button state onto aria-pressed
+  function syncToggleAria() {
+    $$(".seg-btn, .tab").forEach((b) => b.setAttribute("aria-pressed", b.classList.contains("active") ? "true" : "false"));
   }
 
   /* ——— Shared DEX aggregation (top tracked tokens → pairs) ——— */
@@ -873,6 +879,7 @@
       if (group.id === "nightRange") { chartRanges.NIGHT = seg.dataset.range; drawNightChart(chartRanges.NIGHT); }
       if (group.id === "tokenRange") { chartRanges.TOKEN = seg.dataset.range; if (currentToken) paintTokenChart(currentToken); }
       if (group.id === "chartType") { chartType = seg.dataset.ctype; if (currentToken) paintTokenChart(currentToken); }
+      syncToggleAria();
     });
 
     // market tabs (category quick filters)
@@ -880,6 +887,7 @@
       const tab = e.target.closest("[data-mtab]");
       if (!tab) return;
       $$("#marketTabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
+      syncToggleAria();
       renderMarketTokens();
     });
 
@@ -907,6 +915,7 @@
       $$("#pfTabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
       $$(".tab-panel", $("#sec-portfolio")).forEach((p) =>
         p.classList.toggle("active", p.id === "pf-" + tab.dataset.tab));
+      syncToggleAria();
     });
 
     // midnight calc

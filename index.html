@@ -71,7 +71,7 @@
         <button class="icon-btn menu-btn" id="menuBtn" aria-label="Toggle menu" type="button">☰</button>
         <div class="search">
           <span class="search-icon" aria-hidden="true">⌕</span>
-          <input id="globalSearch" type="search" placeholder="Search tokens, pools, pages…" autocomplete="off" readonly style="cursor:pointer" />
+          <input id="globalSearch" type="search" aria-label="Search tokens, pools, pages" placeholder="Search tokens, pools, pages…" autocomplete="off" readonly style="cursor:pointer" />
           <span class="search-hint"><span class="kbd">⌘</span><span class="kbd">K</span></span>
         </div>
         <div class="topbar-actions">
@@ -189,7 +189,7 @@
           </div>
           <div class="tab-panel active" id="mtab-tokens">
             <div class="filters">
-              <input type="search" id="marketSearch" placeholder="Name, ticker, policy id, or asset unit…" />
+              <input type="search" id="marketSearch" aria-label="Filter market tokens" placeholder="Name, ticker, policy id, or asset unit…" />
               <select id="marketCat">
                 <option value="">All categories</option>
               </select>
@@ -425,7 +425,7 @@
   
   <div class="cmdk-backdrop" id="cmdk" role="dialog" aria-modal="true" aria-label="Command palette">
     <div class="cmdk">
-      <input id="cmdkInput" type="search" placeholder="Search tokens, pages, pools…" autocomplete="off" />
+      <input id="cmdkInput" type="search" aria-label="Command palette search" placeholder="Search tokens, pages, pools…" autocomplete="off" />
       <div class="cmdk-list" id="cmdkList"></div>
     </div>
   </div>
