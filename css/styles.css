@@ -403,9 +403,17 @@ img, svg { display: block; }
   .sidebar {
     position: fixed; left: 0; transform: translateX(-105%);
     transition: transform .2s ease; width: min(280px, 86vw);
+    z-index: 60; /* decisively above the scrim (45) so taps always land on links */
   }
   .sidebar.open { transform: translateX(0); }
-  .menu-btn { display: inline-flex; }
+  .menu-btn {
+    display: inline-flex;
+    -webkit-tap-highlight-color: transparent;
+    border-radius: 8px;
+    transition: background .12s ease;
+  }
+  .menu-btn:active { background: rgba(139,124,255,0.16); }
+  .menu-btn[aria-expanded="true"] { background: rgba(139,124,255,0.16); color: var(--text); }
   .network-chip span:not(.dot) { display: none; }
   .content { padding: 14px 12px 32px; }
   .stat-value { font-size: 17px; }

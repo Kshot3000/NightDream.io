@@ -858,10 +858,13 @@
 
   /* ——— Events ——— */
   function bind() {
-    window.addEventListener("hashchange", () => { closeCmdk(); render(); });
+    window.addEventListener("hashchange", () => { closeCmdk(); closeSidebar(); render(); });
     $("#menuBtn")?.addEventListener("click", () => {
-      $("#sidebar").classList.toggle("open");
-      $("#sidebarOverlay").classList.toggle("show");
+      const sb = $("#sidebar");
+      const open = !sb.classList.contains("open");
+      sb.classList.toggle("open", open);
+      $("#sidebarOverlay").classList.toggle("show", open);
+      $("#menuBtn").setAttribute("aria-expanded", open ? "true" : "false");
     });
     $("#sidebarOverlay")?.addEventListener("click", closeSidebar);
     $("#connectBtn")?.addEventListener("click", () => navigate("#portfolio"));
@@ -962,6 +965,7 @@
   function closeSidebar() {
     $("#sidebar")?.classList.remove("open");
     $("#sidebarOverlay")?.classList.remove("show");
+    $("#menuBtn")?.setAttribute("aria-expanded", "false");
   }
 
   $("#copyDonate")?.addEventListener("click", async () => {
