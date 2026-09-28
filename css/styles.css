@@ -753,6 +753,10 @@ canvas.chart-lg { width: 100% !important; height: 100% !important; }
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-actions { gap: 8px; }
   .freshness { display: none; }
+  /* ~390px topbar headroom: the ⌘K hint chips are desktop-only cues (the
+     palette opens on tap too) and the connect button must never wrap mid-label. */
+  .search-hint { display: none; }
+  .topbar .btn { white-space: nowrap; flex-shrink: 0; }
   /* ~390px filter bar: the 200px input min-width plus a select plus gaps could
      exceed a 360px viewport's content width. Let the input grow/shrink freely. */
   .filters input { min-width: 0; flex: 1 1 160px; }
