@@ -242,7 +242,7 @@
     el.innerHTML = items.length ? items.map((t) => `
       <div class="list-row" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">
         <div class="token-cell">${icon(t, 1)}<strong>${t.ticker}</strong>
-          <button class="star-btn on" data-star="${t.ticker}" type="button" onclick="event.stopPropagation()">★</button></div>
+          <button class="star-btn on" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}" onclick="event.stopPropagation()">★</button></div>
         <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</span>
       </div>`).join("")
       : `<div class="empty" style="padding:20px"><strong>No favorites yet</strong>Star tokens from Markets.</div>`;
@@ -317,7 +317,7 @@
     }
     tb.innerHTML = list.map((t, i) => `
       <tr>
-        <td><button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button">★</button></td>
+        <td><button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
         <td class="rank-cell">${i + 1}</td>
         <td><div class="token-cell" data-goto="token/${t.ticker}">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
         <td>${fmt.usd(t.price, t.price < 0.01 ? 6 : 4)}</td>
@@ -352,7 +352,7 @@
       <div class="token-banner">
         <div class="big-avatar">${icon(t)}</div>
         <div style="flex:1;min-width:200px">
-          <h1>${t.name} <button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" style="font-size:18px">★</button></h1>
+          <h1>${t.name} <button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}" style="font-size:18px">★</button></h1>
           <div class="price-row"><span class="price">${fmt.usd(t.price, t.price < 0.01 ? 6 : 4)}</span>
             <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)} 24h</span>
             <span class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)} 7d</span></div>
@@ -817,7 +817,7 @@
     if (!ids.length) { tb.innerHTML = ""; empty.style.display = "block"; return; }
     empty.style.display = "none";
     tb.innerHTML = ids.map((t) => `
-      <tr><td><button class="star-btn on" data-star="${t.ticker}" type="button">★</button></td>
+      <tr><td><button class="star-btn on" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
       <td><div class="token-cell" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
       <td>${fmt.usd(t.price, 6)}</td><td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
       <td>${fmt.usd(t.vol)}</td><td>${fmt.usd(t.mcap)}</td>
