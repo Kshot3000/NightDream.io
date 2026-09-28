@@ -26,7 +26,7 @@ candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), an
 | [MinSwap aggregator](https://minswap.org) | ADA/USD reference price |
 | [NightForge](https://nightforge.jp/api/docs) | Midnight network analytics (blocks, TPS, shielded, bridge) |
 
-Responses are cached (5–30 min depending on endpoint, persisted in localStorage) and every panel
+Responses are cached (2 minutes to 6 hours depending on endpoint, persisted in localStorage) and every panel
 degrades gracefully with loading skeletons and plain-language error states. No demo or placeholder
 figures are shown anywhere.
 
@@ -52,6 +52,7 @@ No build step — static HTML/CSS/JS, deployable to any static host (GitHub Page
 ```
 index.html        app shell + all pages
 css/styles.css    dark purple/teal theme
+css/fx.css        visual FX layer (living background, cinematic hero, glow hovers)
 js/tokens.js      curated Cardano token universe (CoinGecko IDs + on-chain policy IDs)
 js/live.js        cached data layer (CoinGecko / DexScreener / Koios / MinSwap)
 js/data.js        shared state + formatters
