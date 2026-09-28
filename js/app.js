@@ -83,6 +83,20 @@
     `<div class="skel" style="height:${h || 14}px;margin:8px 0"></div>`).join("");
   const skelCards = (n) => Array.from({ length: n }).map(() =>
     `<div class="stat-card"><div class="skel" style="height:11px;width:55%"></div><div class="skel" style="height:22px;width:75%;margin-top:10px"></div><div class="skel" style="height:11px;width:45%;margin-top:8px"></div></div>`).join("");
+  /* Markets-feed error state (used when the token-universe fetch failed and there
+     is no data to show — avoids an endless skeleton when feeds are unreachable). */
+  const marketsErrHTML = (msg) =>
+    `<div class="empty" style="padding:28px 16px"><strong>${msg || "Market data couldn't load"}</strong>` +
+    `<span class="muted" style="display:block;margin-top:4px">The price feed appears to be unreachable from your network. Nothing was changed locally.</span><br>` +
+    `<button class="btn btn-sm" type="button" data-retry-markets>Retry</button></div>`;
+  const bindMarketsRetry = (root) => root.querySelectorAll("[data-retry-markets]").forEach((b) =>
+    b.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      b.disabled = true; b.textContent = "Retrying…";
+      await ND.ensureMarkets(true);
+      render();
+    }));
+  const marketsFailed = () => ND._marketsTried && ND._marketsError && !ND.TOKENS.length;
   /* Chart error overlay (canvas stays, dimmed): message + retry inside .chart-wrap */
   function chartError(canvas, msg, retry) {
     const wrap = canvas?.closest(".chart-wrap");
@@ -167,10 +181,16 @@
   async function renderOverview() {
     const T = ND.TOKENS;
     if (!T.length) {
-      $("#overviewStats").innerHTML = skelCards(8);
-      $("#ovMovers").innerHTML = skel(6);
-      $("#ovTrending").innerHTML = skel(5);
-      $("#ovWatch").innerHTML = skel(3);
+      if (marketsFailed()) {
+        $("#overviewStats").innerHTML = marketsErrHTML();
+        bindMarketsRetry($("#overviewStats"));
+        $("#ovMovers").innerHTML = $("#ovTrending").innerHTML = $("#ovWatch").innerHTML = "";
+      } else {
+        $("#overviewStats").innerHTML = skelCards(8);
+        $("#ovMovers").innerHTML = skel(6);
+        $("#ovTrending").innerHTML = skel(5);
+        $("#ovWatch").innerHTML = skel(3);
+      }
       return;
     }
     const ada = ND.getToken("ADA");
@@ -292,8 +312,14 @@
     return list;
   }
   function renderMarkets() {
+    const tb = $("#marketsTable").querySelector("tbody");
     if (!ND.TOKENS.length) {
-      $("#marketsTable").querySelector("tbody").innerHTML = `<tr><td colspan="9">${skel(8)}</td></tr>`;
+      if (marketsFailed()) {
+        tb.innerHTML = `<tr><td colspan="9">${marketsErrHTML()}</td></tr>`;
+        bindMarketsRetry(tb);
+      } else {
+        tb.innerHTML = `<tr><td colspan="9">${skel(8)}</td></tr>`;
+      }
       return;
     }
     const sel = $("#marketCat");

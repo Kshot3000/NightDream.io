@@ -21,9 +21,15 @@ ND._marketsAt = 0;
 
 ND.ensureMarkets = async function (force) {
   const rows = await LIVE.markets(force);
+  ND._marketsTried = true; /* at least one fetch attempt has completed */
   if (rows && rows.length) {
     ND.TOKENS = rows;
     ND._marketsAt = Date.now();
+    ND._marketsError = false;
+  } else if (!ND.TOKENS.length) {
+    /* Only count as an error when there is no usable data at all;
+       a failed refresh with a stale table in place stays quiet. */
+    ND._marketsError = true;
   }
   return ND.TOKENS;
 };
