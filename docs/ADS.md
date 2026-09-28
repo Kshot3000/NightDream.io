@@ -10,13 +10,15 @@ The site is **LIVE with AdSense** (verified 2026-09-27).
 
 ## Slots (all CLS-safe)
 
-| Slot | Location |
-| --- | --- |
-| `ov-top` | Overview, under the hero |
-| `ov-bottom` | Overview, bottom of page |
-| `mk-top` | Markets, under the page head |
-| `tk-bottom` | Token page, under content |
-| `ft-top` | Above the footer, every page |
+Unit IDs are created in AdSense and wired in `js/ads.js` (`AD_UNITS`).
+
+| Slot | Ad unit ID | Location |
+| --- | --- | --- |
+| `ov-top` | `3123419917` | Overview, under the hero |
+| `ov-bottom` | `8156254747` | Overview, bottom of page |
+| `mk-top` | `6843173077` | Markets, under the page head |
+| `tk-bottom` | `6634280358` | Token page, under content |
+| `ft-top` | `6027027266` | Above the footer, every page |
 
 Add more anywhere with: `<div class="ad-slot" data-ad="unique-key" aria-hidden="true"></div>`
 
