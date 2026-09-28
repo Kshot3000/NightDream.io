@@ -320,8 +320,8 @@
         <td class="${chClass(t.ch1h)}">${fmt.pct(t.ch1h)}</td>
         <td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
         <td class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)}</td>
-        <td>${t.vol ? fmt.usd(t.vol) : "—"}</td>
-        <td>${t.mcap ? fmt.usd(t.mcap) : "—"}</td>
+        <td>${t.vol ? `<span title="${fmt.exactUsd(t.vol)}">${fmt.usd(t.vol)}</span>` : "—"}</td>
+        <td>${t.mcap ? `<span title="${fmt.exactUsd(t.mcap)}">${fmt.usd(t.mcap)}</span>` : "—"}</td>
       </tr>`).join("");
     tb.querySelectorAll("[data-star]").forEach((b) =>
       b.addEventListener("click", (e) => { e.stopPropagation(); toggleWatch(b.dataset.star); }));
@@ -950,6 +950,15 @@
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         $("#cmdk").classList.contains("open") ? closeCmdk() : openCmdk();
+      }
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        const tag = (document.activeElement?.tagName || "").toLowerCase();
+        const typing = tag === "input" || tag === "textarea" || tag === "select" ||
+          document.activeElement?.isContentEditable;
+        if (!typing && !$("#cmdk").classList.contains("open")) {
+          e.preventDefault();
+          openCmdk();
+        }
       }
       if (e.key === "Escape") closeCmdk();
     });

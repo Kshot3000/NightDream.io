@@ -65,6 +65,10 @@ ND.fmt = {
     if (n >= 1e3) return (n / 1e3).toFixed(1) + "K";
     return Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 });
   },
+  exactUsd(n) {
+    if (n == null || Number.isNaN(n)) return "—";
+    return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  },
   timeAgo(ts) {
     const t = typeof ts === "number" ? ts : new Date(ts).getTime();
     const d = (Date.now() - t) / 1000;
