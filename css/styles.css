@@ -748,6 +748,10 @@ canvas.chart-lg { width: 100% !important; height: 100% !important; }
   .topbar { padding: 0 12px; gap: 8px; }
   .topbar-actions { gap: 8px; }
   .freshness { display: none; }
+  /* ~390px filter bar: the 200px input min-width plus a select plus gaps could
+     exceed a 360px viewport's content width. Let the input grow/shrink freely. */
+  .filters input { min-width: 0; flex: 1 1 160px; }
+  .filters select { max-width: 100%; }
   /* iOS Safari auto-zooms the page when an input with font-size < 16px
      receives focus — hold the 16px floor on focusable fields so the
      viewport stays put on the filter bar and the command palette. */
