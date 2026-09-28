@@ -7,7 +7,7 @@ window.WALLET = (function () {
     eternl: "https://eternl.io",
     nami: "https://namiwallet.io",
     lace: "https://www.lace.io",
-    flint: "https://flint-wallet.com",
+    flint: "https://chromewebstore.google.com/detail/flint/hnhobjmcibchnmglfbldbfabcgaknlkj",
     vespr: "https://www.vespr.xyz",
     typhon: "https://typhonwallet.io",
     gero: "https://gerowallet.io",
