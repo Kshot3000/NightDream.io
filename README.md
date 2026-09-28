@@ -9,7 +9,7 @@ candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), an
 ## What it does
 
 - **Overview** — live ADA + NIGHT pulse, price charts, top movers, trending by volume, liquidity snapshot, portfolio mini
-- **Markets** — sortable/filterable screener over ~85 Cardano assets (search by ticker, name, policy ID, or asset unit)
+- **Markets** — sortable/filterable screener over 84 curated Cardano assets (search by ticker, name, policy ID, or asset unit)
 - **Token pages** — live price, line/candle charts (24H/7D/30D/1Y), market stats, buys-vs-sells, DEX markets table, on-chain data (policy ID, fingerprint, decimals, supply, holder count), project links, description
 - **Portfolio** — connect Nami / Eternl / Lace / Flint / Vespr (any CIP-30 wallet) for a live read-only portfolio: net worth, allocation, positions, NFTs, on-chain activity; or track any `addr1…`/`stake1…` address without connecting
 - **DEX analytics** — 24h volume aggregated from DexScreener across tracked tokens, per-DEX share, top pairs table
@@ -39,8 +39,8 @@ figures are shown anywhere.
 ## Run locally
 
 ```bash
-git clone https://github.com/Kshot3000/NightDream.xyz
-cd NightDream.xyz
+git clone https://github.com/Kshot3000/nightdream.xyz
+cd nightdream.xyz
 python3 -m http.server 8000
 # open http://localhost:8000/
 ```
@@ -58,6 +58,8 @@ js/data.js        shared state + formatters
 js/wallet.js      CIP-30 discovery, bech32, Koios-backed portfolio builder
 js/charts.js      canvas charts (line, candles, bars, donut, sparklines)
 js/app.js         router + page renderers
+js/bg.js          animated full-viewport background canvas (₳ embers, hexagon motif, node network)
+js/ads.js         AdSense slot activation (user-approved, live)
 ```
 
 ## Limitations
@@ -70,8 +72,9 @@ js/app.js         router + page renderers
 
 ## Custom domain (DNS)
 
-`nightdream.xyz` should CNAME/A to GitHub Pages — see **[docs/DNS.md](docs/DNS.md)**.
-The apex did not resolve as of 2026-09-25; the GitHub Pages URL above is the working site.
+**Live since 2026-09-27** at https://nightdream.xyz/ — apex resolves, GitHub Pages
+HTTPS certificate is issued and "Enforce HTTPS" is on. The working record set is
+documented in **[docs/DNS.md](docs/DNS.md)**.
 
 ## Data sources (Midnight network)
 

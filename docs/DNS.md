@@ -1,10 +1,13 @@
 # NightDream.xyz DNS → GitHub Pages
 
-**Live today:** https://nightdream.xyz/
+**Status (verified 2026-09-27):** LIVE at https://nightdream.xyz/ — apex resolves,
+HTTPS certificate is issued, and "Enforce HTTPS" is enabled on the Pages site.
+The record table below documents the working setup (historical activation notes).
 
-**Custom domain goal:** https://nightdream.xyz/
+**Custom domain goal:** https://nightdream.xyz/ (achieved 2026-09-27)
 
-Domain purchased 2026-09-27. As of purchase the apex had no DNS records yet — add the records below to activate.
+Domain purchased 2026-09-27. At purchase the apex had no DNS records yet — the
+records below were added at the registrar to activate.
 
 ## Recommended records
 
