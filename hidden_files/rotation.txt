@@ -1,1 +1,2 @@
 mobile ~390px concerns (2026-09-28 07:24 CDT): code-reviewed all major layouts at 390px — tables scroll-wrapped, grids wrap, topbar/filters/hero/cmkd/sidebar all fine; shipped topbar headroom fix (hide ⌘K chips ≤640px, nowrap connect button, commit ff57205), verified live; next: a11y (labels, focus, contrast)
+a11y (2026-09-28 09:24 CDT): command-palette focus restoration + listbox/option roles with aria-selected sync (commit 18a9984), verified live; next: link/route audit
