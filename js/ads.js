@@ -16,13 +16,13 @@
 
   var ADS_CLIENT = "ca-pub-3316742664595468"; // AdSense publisher ID (live)
 
-  // Optional per-slot ad unit IDs (leave empty for Auto ads / default units).
+  // Per-slot ad unit IDs (created in AdSense 2026-09-27).
   var AD_UNITS = {
-    "ov-top": "",
-    "ov-bottom": "",
-    "mk-top": "",
-    "tk-bottom": "",
-    "ft-top": "",
+    "ov-top": "3123419917",
+    "ov-bottom": "8156254747",
+    "mk-top": "6843173077",
+    "tk-bottom": "6634280358",
+    "ft-top": "6027027266",
   };
 
   function setupSlots() {
