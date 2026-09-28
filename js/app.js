@@ -957,7 +957,7 @@
       const tab = e.target.closest("[data-tab]");
       if (!tab) return;
       $$("#pfTabs .tab").forEach((t) => t.classList.toggle("active", t === tab));
-      $$(".tab-panel", $("#sec-portfolio")).forEach((p) =>
+      $$(".tab-panel", $("#portfolio")).forEach((p) =>
         p.classList.toggle("active", p.id === "pf-" + tab.dataset.tab));
       syncToggleAria();
     });
