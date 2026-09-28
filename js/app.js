@@ -984,6 +984,13 @@
     catch (_) { toast("Copy failed — select the address"); }
   });
   $("#donateAddr")?.addEventListener("click", () => $("#copyDonate")?.click());
+  $("#copyDonateBtc")?.addEventListener("click", async () => {
+    const addr = $("#donateAddrBtc")?.textContent?.trim();
+    if (!addr) return;
+    try { await navigator.clipboard.writeText(addr); toast("BTC donation address copied"); }
+    catch (_) { toast("Copy failed — select the address"); }
+  });
+  $("#donateAddrBtc")?.addEventListener("click", () => $("#copyDonateBtc")?.click());
 
   /* ——— Boot ——— */
   async function boot() {
