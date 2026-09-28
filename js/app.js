@@ -852,14 +852,25 @@
   }
 
   /* ——— ⌘K ——— */
+  let cmdkOpener = null, cmdkRestoring = false;
   function openCmdk() {
+    cmdkOpener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     $("#cmdk").classList.add("open");
     const input = $("#cmdkInput");
     input.value = "";
     paintCmdk("");
     setTimeout(() => input.focus(), 10);
   }
-  function closeCmdk() { $("#cmdk").classList.remove("open"); }
+  function closeCmdk() {
+    const opener = cmdkOpener; cmdkOpener = null;
+    $("#cmdk").classList.remove("open");
+    // return focus to whatever opened the dialog (unless it was programmatic-only)
+    if (opener && document.contains(opener)) {
+      cmdkRestoring = opener.id === "globalSearch"; // globalSearch focus handler re-opens; suppress it here
+      opener.focus({ preventScroll: true });
+      cmdkRestoring = false;
+    }
+  }
   function paintCmdk(q) {
     q = (q || "").toLowerCase().trim();
     const pages = [
@@ -879,7 +890,7 @@
     items = items.slice(0, 20);
     const list = $("#cmdkList");
     list.innerHTML = items.length ? items.map((i, idx) => `
-      <div class="cmdk-item ${idx === 0 ? "active" : ""}" data-hash="${i.hash}">
+      <div class="cmdk-item ${idx === 0 ? "active" : ""}" role="option" aria-selected="${idx === 0 ? "true" : "false"}" data-hash="${i.hash}">
         <span>${i.label}</span><span class="hint">${i.hint || ""}</span></div>`).join("")
       : `<div class="cmdk-empty">No matches</div>`;
     list.querySelectorAll(".cmdk-item").forEach((el) =>
@@ -957,7 +968,7 @@
 
     // ⌘K
     $("#globalSearch")?.addEventListener("click", openCmdk);
-    $("#globalSearch")?.addEventListener("focus", (ev) => { ev.target.blur(); openCmdk(); });
+    $("#globalSearch")?.addEventListener("focus", (ev) => { if (cmdkRestoring) { ev.target.blur(); return; } ev.target.blur(); openCmdk(); });
     $("#cmdk")?.addEventListener("click", (e) => { if (e.target.id === "cmdk") closeCmdk(); });
     $("#cmdkInput")?.addEventListener("input", (e) => paintCmdk(e.target.value));
     $("#cmdkInput")?.addEventListener("keydown", (e) => {
@@ -973,6 +984,7 @@
         items.forEach((x) => x.classList.remove("active"));
         const next = e.key === "ArrowDown" ? Math.min(items.length - 1, i + 1) : Math.max(0, i - 1);
         items[next]?.classList.add("active");
+        items.forEach((x) => x.setAttribute("aria-selected", x.classList.contains("active") ? "true" : "false"));
         items[next]?.scrollIntoView({ block: "nearest" });
       }
     });
