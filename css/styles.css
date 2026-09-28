@@ -543,6 +543,7 @@ img.token-avatar { object-fit: cover; }
   animation: skel 1.2s ease infinite;
 }
 @keyframes skel { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .skel { animation: none; } }
 
 /* key-value rows */
 .kv {

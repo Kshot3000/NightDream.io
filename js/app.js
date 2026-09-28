@@ -311,6 +311,10 @@
     const list = filteredMarketTokens();
     const mc = $("#marketCount");
     if (mc) mc.textContent = `${list.length} assets`;
+    if (!list.length) {
+      tb.innerHTML = `<tr><td colspan="9"><div class="empty" style="padding:40px 20px"><strong>No tokens match your search or filters</strong><span class="muted">Try a different search term or category.</span></div></td></tr>`;
+      return;
+    }
     tb.innerHTML = list.map((t, i) => `
       <tr>
         <td><button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button">★</button></td>
