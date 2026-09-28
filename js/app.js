@@ -97,6 +97,19 @@
       render();
     }));
   const marketsFailed = () => ND._marketsTried && ND._marketsError && !ND.TOKENS.length;
+  /* DEX-feed error state: explained message + retry (busts the 10-min cache so the
+     retry actually re-hits DexScreener). Used when the feed returned nothing. */
+  const dexErrHTML = () =>
+    `<div class="empty" style="padding:28px 16px"><strong>DEX feed unavailable</strong>` +
+    `<span class="muted" style="display:block;margin-top:4px">DexScreener appears to be unreachable from your network. Nothing was changed locally.</span><br>` +
+    `<button class="btn btn-sm" type="button" data-retry-dex>Retry</button></div>`;
+  const bindDexRetry = (root) => root?.querySelectorAll("[data-retry-dex]").forEach((b) =>
+    b.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      b.disabled = true; b.textContent = "Retrying…";
+      dexAggCache = null; // force a fresh fetch, not a cached empty result
+      render();
+    }));
   /* Chart error overlay (canvas stays, dimmed): message + retry inside .chart-wrap */
   function chartError(canvas, msg, retry) {
     const wrap = canvas?.closest(".chart-wrap");
@@ -235,9 +248,13 @@
       if (currentRoute !== "overview") return;
       const rows = agg.pairs.slice(0, 5);
       const maxLiq = Math.max(...rows.map((p) => p.liq || 0), 1);
-      $("#ovPools").querySelector("tbody").innerHTML = rows.map((p) => `
+      const tb = $("#ovPools").querySelector("tbody");
+      tb.innerHTML = rows.map((p) => `
         <tr><td><strong>${p.pair}</strong></td><td>${dexCell(p.dex)}</td><td>${liqBar(p.liq, maxLiq)}</td><td>${fmt.usd(p.vol24)}</td></tr>`).join("")
-        || `<tr><td colspan="4" class="muted">No pair data.</td></tr>`;
+        || (agg.dexes.length
+          ? `<tr><td colspan="4" class="muted">No pair data.</td></tr>`
+          : `<tr><td colspan="4"><div class="empty" style="padding:18px 8px"><strong>DEX feed unavailable</strong><br><button class="btn btn-sm" type="button" data-retry-dex>Retry</button></div></td></tr>`);
+      bindDexRetry(tb);
     });
   }
 
@@ -757,17 +774,23 @@
     $("#dexShareLegend").innerHTML = agg.dexes.map((d, i) => `
       <span><span><i class="dot-swatch" style="background:${colors[i % colors.length]}"></i>${d.name}</span>
       <span>${((d.vol24 / totVol) * 100).toFixed(1)}%</span></span>`).join("");
+    const dexFeedDown = !agg.dexes.length;
     $("#dexList").innerHTML = agg.dexes.map((d) => `
       <div class="list-row">${dexCell(d.name)}<span>${fmt.usd(d.vol24)} · ${d.pairs} pairs</span></div>`).join("")
-      || `<div class="empty">No DEX data available.</div>`;
+      || dexErrHTML();
     const vis = agg.pairs.slice(0, 20);
     const maxLiq = Math.max(...vis.map((p) => p.liq || 0), 1);
     $("#poolsTable").querySelector("tbody").innerHTML = vis.map((p) => `
       <tr><td><strong>${p.pair}</strong></td><td>${dexCell(p.dex)}</td><td>${liqBar(p.liq, maxLiq)}</td>
       <td>${fmt.usd(p.vol24)}</td><td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
       <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
-      <td><a href="${p.url}" target="_blank" rel="noopener">View ↗</a></td></tr>`).join("");
-    if (dn) dn.textContent = `24h volume aggregated from top pairs of 12 tracked tokens · DexScreener · updated ${fmt.timeAgo(dexAggAt)}`;
+      <td><a href="${p.url}" target="_blank" rel="noopener">View ↗</a></td></tr>`).join("")
+      || `<tr><td colspan="7">${dexErrHTML()}</td></tr>`;
+    bindDexRetry($("#dexList"));
+    bindDexRetry($("#poolsTable"));
+    if (dn) dn.textContent = dexFeedDown
+      ? "DEX feed unreachable · DexScreener · nothing changed locally"
+      : `24h volume aggregated from top pairs of 12 tracked tokens · DexScreener · updated ${fmt.timeAgo(dexAggAt)}`;
   }
 
   /* ——— Midnight ——— */
