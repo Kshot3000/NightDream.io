@@ -791,7 +791,7 @@ canvas.chart-lg { width: 100% !important; height: 100% !important; }
      viewport stays put on the filter bar, the command palette, the
      DUST calculator, and the watchlist address trackers. */
   .cmdk input, .filters input, .filters select,
-  .calc-box input, .input { font-size: 16px; }
+  .calc-box input, .input, .search input { font-size: 16px; }
 }
 
 /* ---------- Ad slots (hidden until ads enabled) ---------- */
