@@ -229,16 +229,16 @@
     const gainers = [...T].filter((t) => (t.ch24 || 0) > 0).sort((a, b) => b.ch24 - a.ch24).slice(0, 5);
     const losers = [...T].filter((t) => (t.ch24 || 0) < 0).sort((a, b) => a.ch24 - b.ch24).slice(0, 5);
     $("#ovMovers").innerHTML = [...gainers, ...losers].map((t) => `
-      <div class="list-row" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">
+      <a class="list-row row-link" href="#token/${t.ticker}">
         <div class="token-cell">${icon(t, 1)}<strong>${t.ticker}</strong></div>
         <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</span>
-      </div>`).join("");
+      </a>`).join("");
     const trending = [...T].filter((t) => t.ticker !== "ADA").sort((a, b) => (b.vol || 0) - (a.vol || 0)).slice(0, 5);
     $("#ovTrending").innerHTML = trending.map((t, i) => `
-      <div class="list-row" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">
+      <a class="list-row row-link" href="#token/${t.ticker}">
         <div class="token-cell"><span class="rank-badge${i < 3 ? " top" : ""}">#${i + 1}</span>${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div>
         <div style="text-align:right"><div>${fmt.prx(t.price, 6)}</div><div class="${chClass(t.ch24)}" style="font-size:12px">${fmt.pct(t.ch24)}</div></div>
-      </div>`).join("");
+      </a>`).join("");
     renderWatchPanel();
     renderPfMiniPanel();
 
@@ -277,9 +277,9 @@
     if (!el) return;
     const items = [...watch].map((id) => ND.getToken(id)).filter(Boolean).slice(0, 6);
     el.innerHTML = items.length ? items.map((t) => `
-      <div class="list-row" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">
-        <div class="token-cell">${icon(t, 1)}<strong>${t.ticker}</strong>
-          <button class="star-btn on" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}" onclick="event.stopPropagation()">★</button></div>
+      <div class="list-row">
+        <div class="token-cell"><a class="row-link" href="#token/${t.ticker}">${icon(t, 1)}<strong>${t.ticker}</strong></a>
+          <button class="star-btn on" data-star="${t.ticker}" type="button" aria-label="Remove ${t.ticker} from watchlist">★</button></div>
         <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</span>
       </div>`).join("")
       : `<div class="empty" style="padding:20px"><strong>No favorites yet</strong>Star tokens from Markets.</div>`;
@@ -362,7 +362,7 @@
       <tr>
         <td><button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
         <td class="rank-cell">${i + 1}</td>
-        <td><div class="token-cell" data-goto="token/${t.ticker}">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
+        <td><a class="token-cell row-link" href="#token/${t.ticker}" data-goto="token/${t.ticker}">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></a></td>
         <td>${fmt.prx(t.price, t.price < 0.01 ? 6 : 4)}</td>
         <td class="${chClass(t.ch1h)}">${fmt.pct(t.ch1h)}</td>
         <td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
@@ -900,7 +900,7 @@
     empty.style.display = "none";
     tb.innerHTML = ids.map((t) => `
       <tr><td><button class="star-btn on" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
-      <td><div class="token-cell" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
+      <td><a class="token-cell row-link" href="#token/${t.ticker}">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></a></td>
       <td>${fmt.prx(t.price, 6)}</td><td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
       <td>${fmt.usdx(t.vol)}</td><td>${fmt.usdx(t.mcap)}</td>
       <td><a class="btn btn-sm" href="#token/${t.ticker}">Open</a></td></tr>`).join("");
