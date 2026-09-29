@@ -8,7 +8,7 @@
   --border-strong: rgba(255,255,255,0.12);
   --text: #e8eaf4;
   --muted: #8a90a8;
-  --faint: #5c637a;
+  --faint: #78839f; /* bumped from #5c637a (3.37:1) to pass WCAG AA 4.5:1 on --bg (5.31:1) */
   --accent: #8b7cff;
   --accent-2: #2ee6c5;
   --accent-dim: rgba(139,124,255,0.15);
