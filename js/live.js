@@ -11,6 +11,10 @@ window.LIVE = (function () {
   const CG = "https://api.coingecko.com/api/v3";
   const KOIOS = "https://api.koios.rest/api/v1";
   const DEXS = "https://api.dexscreener.com";
+  /* DexScreener reachability flag — set by jget so the UI can tell a feed
+     outage apart from a token that genuinely has no pairs. Starts true so
+     the first render doesn't mislabel a cold cache as down. */
+  let dexUp = true;
   const MINAGG = "https://agg-api.minswap.org/aggregator";
 
   const mem = new Map();
@@ -48,8 +52,10 @@ window.LIVE = (function () {
       if (!r.ok) throw new Error("HTTP " + r.status);
       const j = await r.json();
       cacheSet(url, j, ttlMs);
+      if (url.indexOf(DEXS) === 0) dexUp = true;
       return j;
     } catch (e) {
+      if (url.indexOf(DEXS) === 0) dexUp = false;
       return null;
     } finally {
       clearTimeout(timer);
@@ -270,5 +276,6 @@ window.LIVE = (function () {
     nightforgeOverview, nightforgeHealth,
     cacheGet, cacheSet, cacheDel,
     CG, KOIOS, DEXS, NF,
+    dexUp: () => dexUp,
   };
 })();

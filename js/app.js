@@ -531,8 +531,13 @@
         // ADA is the native asset: DexScreener has no per-token endpoint for it,
         // so surface the top ADA-quoted pairs from the shared DEX aggregation.
         if (t.ticker === "ADA") { renderAdaPairs(bs, pt, t); return; }
-        if (bs) bs.innerHTML = `<p class="muted">No DEX pair data found.</p>`;
-        if (pt) pt.innerHTML = `<tr><td colspan="8" class="muted">No DEX pairs found for this token.</td></tr>`;
+        // Distinguish a DexScreener outage from a token with genuinely no pairs.
+        const feedDown = !LIVE.dexUp();
+        if (bs) bs.innerHTML = feedDown ? dexErrHTML() : `<p class="muted">No DEX pair data found.</p>`;
+        if (pt) pt.innerHTML = feedDown
+          ? `<tr><td colspan="8">${dexErrHTML()}</td></tr>`
+          : `<tr><td colspan="8" class="muted">No DEX pairs found for this token.</td></tr>`;
+        bindDexRetry(bs); bindDexRetry(pt);
         return;
       }
       const tot = dex.buys + dex.sells;
@@ -557,13 +562,17 @@
   async function renderAdaPairs(bs, pt, t) {
     const agg = await getDexAgg().catch(() => null);
     if (currentToken !== t || !$("#tokenPage")) return;
+    const feedDown = !agg || !(agg.dexes && agg.dexes.length);
     const adaPairs = ((agg && agg.pairs) || [])
       .filter((p) => /(^|\/)ADA(\/|$)/.test(p.pair || ""))
       .sort((a, b) => (b.liq || 0) - (a.liq || 0))
       .slice(0, 8);
     if (!adaPairs.length) {
-      if (bs) bs.innerHTML = `<p class="muted">No DEX pair data found.</p>`;
-      if (pt) pt.innerHTML = `<tr><td colspan="8" class="muted">No DEX pairs found for this token.</td></tr>`;
+      if (bs) bs.innerHTML = feedDown ? dexErrHTML() : `<p class="muted">No DEX pair data found.</p>`;
+      if (pt) pt.innerHTML = feedDown
+        ? `<tr><td colspan="8">${dexErrHTML()}</td></tr>`
+        : `<tr><td colspan="8" class="muted">No DEX pairs found for this token.</td></tr>`;
+      bindDexRetry(bs); bindDexRetry(pt);
       return;
     }
     let buys = 0, sells = 0, vol = 0;
