@@ -399,6 +399,10 @@ img, svg { display: block; }
 /* ——— Watchlist empty ——— */
 .empty {
   text-align: center; padding: 40px 20px; color: var(--muted);
+  /* ~390px: fail-soft states render inside .data-table td (white-space:nowrap
+     inherits into the block). Restore wrapping so error/retry copy never
+     forces the pools table sideways on narrow screens. */
+  white-space: normal;
 }
 .empty strong { display: block; color: var(--text); margin-bottom: 6px; }
 
