@@ -452,8 +452,8 @@
         `<div class="token-stat"><div class="lbl">${k}</div><div class="val">${v}</div></div>`).join("");
     };
     statRow([
-      ["Mcap", t.mcap ? fmt.usd(t.mcap) : "—"], ["FDV", t.fdv ? fmt.usd(t.fdv) : "—"],
-      ["Vol 24h", fmt.usd(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
+      ["Mcap", fmt.usdx(t.mcap)], ["FDV", fmt.usdx(t.fdv)],
+      ["Vol 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
       ["ATL", t.atl ? fmt.usd(t.atl, 6) : "—"], ["Category", t.category],
     ]);
     paintTokenChart(t);
@@ -479,8 +479,8 @@
         : `<p class="muted">No description available.</p>`;
       const md = d.market_data || {};
       statRow([
-        ["Mcap", t.mcap ? fmt.usd(t.mcap) : "—"], ["FDV", t.fdv ? fmt.usd(t.fdv) : "—"],
-        ["Vol 24h", fmt.usd(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
+        ["Mcap", fmt.usdx(t.mcap)], ["FDV", fmt.usdx(t.fdv)],
+        ["Vol 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
         ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
         ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],
         ["Max supply", md.max_supply ? fmt.num(md.max_supply) : "—"],
@@ -488,8 +488,8 @@
       ]);
       const ts = $("#tokenStats");
       if (ts) ts.innerHTML = [
-        ["Market cap", t.mcap ? fmt.usd(t.mcap) : "—"], ["FDV", t.fdv ? fmt.usd(t.fdv) : "—"],
-        ["Volume 24h", t.vol ? fmt.usd(t.vol) : "—"], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
+        ["Market cap", fmt.usdx(t.mcap)], ["FDV", fmt.usdx(t.fdv)],
+        ["Volume 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
         ["ATL", t.atl ? fmt.usd(t.atl, 6) : "—"],
         ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
         ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],

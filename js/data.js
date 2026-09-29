@@ -73,7 +73,14 @@ ND.fmt = {
   },
   exactUsd(n) {
     if (n == null || Number.isNaN(n)) return "—";
-    return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
+    return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: 20 });
+  },
+  // Abbreviated USD with the exact value in a title tooltip (no tooltip when identical).
+  usdx(n, d = 2) {
+    if (n == null || Number.isNaN(n)) return "—";
+    if (n === 0) return this.usd(0);
+    const abbr = this.usd(n, d), exact = this.exactUsd(n);
+    return exact === abbr ? abbr : `<span title="${exact}">${abbr}</span>`;
   },
   timeAgo(ts) {
     const t = typeof ts === "number" ? ts : new Date(ts).getTime();
