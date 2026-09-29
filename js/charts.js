@@ -32,11 +32,22 @@ window.NDCharts = (function () {
     ctx.clearRect(0, 0, w, h);
 
     const data = sliceRange(series, opts.range || "7D");
+    const lineLabel = opts.chartLabel || "Price chart";
     if (data.length < 2) {
       ctx.fillStyle = COLORS.text;
       ctx.font = "13px Inter, system-ui, sans-serif";
       ctx.fillText("No chart data", 16, h / 2);
+      describeChart(canvas, lineLabel, null);
       return;
+    }
+    // a11y text summary of the plotted data
+    {
+      const vals2 = data.map((d) => d.v);
+      const first = vals2[0], last = vals2[vals2.length - 1];
+      const hi = Math.max(...vals2), lo = Math.min(...vals2);
+      const chg = first ? ((last - first) / Math.abs(first)) * 100 : 0;
+      describeChart(canvas, lineLabel,
+        `Range ${opts.range || "7D"}: latest $${exactVal(last)}, ${chg >= 0 ? "up" : "down"} ${Math.abs(chg).toFixed(2)}%, high $${exactVal(hi)}, low $${exactVal(lo)}.`);
     }
 
     const pad = { t: 16, r: 16, b: 28, l: 52 };
@@ -137,6 +148,22 @@ window.NDCharts = (function () {
     return v.toFixed(2);
   }
 
+  /* a11y: give every canvas chart a text equivalent for screen readers.
+     Values are exact (never abbreviated) so the label carries real information. */
+  function exactVal(v) {
+    if (v == null || !isFinite(v)) return "—";
+    const av = Math.abs(v);
+    if (av >= 1000) return v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+    if (av >= 1) return v.toFixed(2);
+    if (av > 0 && av < 0.0001) return v.toExponential(2);
+    return String(+v.toPrecision(4));
+  }
+  function describeChart(canvas, label, summary) {
+    if (!canvas) return;
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", summary ? `${label}. ${summary}` : `${label}. No data available.`);
+  }
+
   function drawBars(canvas, items, opts = {}) {
     if (!canvas || !items) return;
     const dpr = window.devicePixelRatio || 1;
@@ -172,6 +199,13 @@ window.NDCharts = (function () {
       ctx.textAlign = "left";
       ctx.fillText((item.pct != null ? item.pct + "%" : String(val)), pad.l + bw + 6, y + bh / 2 + 4);
     });
+    // a11y text summary of the bars
+    {
+      const top = items.slice(0, 5).map((i) =>
+        `${i.label || i.name || "item"} ${(i.pct != null ? i.pct.toFixed(1) + "%" : String(i.value))}`);
+      describeChart(canvas, opts.chartLabel || "Bar chart",
+        items.length ? `Top entries: ${top.join(", ")}.` : null);
+    }
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -183,8 +217,14 @@ window.NDCharts = (function () {
     ctx.closePath();
   }
 
-  function drawDonut(canvas, slices) {
-    if (!canvas || !slices) return;
+  function drawDonut(canvas, slices, opts = {}) {
+    if (!canvas || !slices) { describeChart(canvas, opts.chartLabel || "Donut chart", null); return; }
+    // a11y text summary of the slices
+    {
+      const top = slices.slice(0, 5).map((s) => `${s.label} ${(+s.pct).toFixed(1)}%`);
+      describeChart(canvas, opts.chartLabel || "Donut chart",
+        slices.length ? `Largest shares: ${top.join(", ")}.` : null);
+    }
     const dpr = window.devicePixelRatio || 1;
     const w = canvas.clientWidth || 180;
     const h = canvas.clientHeight || 180;
@@ -229,9 +269,19 @@ window.NDCharts = (function () {
       ctx.fillStyle = COLORS.text;
       ctx.font = "13px Inter, system-ui, sans-serif";
       ctx.fillText("No candle data", 16, h / 2);
+      describeChart(canvas, opts.chartLabel || "Price chart", null);
       return;
     }
     const data = candles.slice(-120);
+    // a11y text summary of the plotted candles
+    {
+      const first = data[0], last = data[data.length - 1];
+      const hi = Math.max(...data.map((c) => c.h));
+      const lo = Math.min(...data.map((c) => c.l));
+      const chg = first.o ? ((last.c - first.o) / Math.abs(first.o)) * 100 : 0;
+      describeChart(canvas, opts.chartLabel || "Price chart",
+        `${data.length} candles, range ${opts.range || "30D"}: opened $${exactVal(first.o)}, closed $${exactVal(last.c)}, ${chg >= 0 ? "up" : "down"} ${Math.abs(chg).toFixed(2)}%, high $${exactVal(hi)}, low $${exactVal(lo)}.`);
+    }
     const pad = { t: 16, r: 16, b: 28, l: 56 };
     let min = Infinity, max = -Infinity;
     data.forEach((c) => { min = Math.min(min, c.l); max = Math.max(max, c.h); });

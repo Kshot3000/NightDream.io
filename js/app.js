@@ -267,8 +267,8 @@
     if (currentRoute !== "overview" || !$(which === "ADA" ? "#ovAdaChart" : "#ovNightChart")) return;
     if (!series) { chartError(cv, `${which} chart unavailable`, () => { if (currentRoute === "overview") drawOverviewChart(which, range); }); return; }
     const opts = which === "NIGHT"
-      ? { range, color: "#2ee6c5", fill: "rgba(46,230,197,0.10)" }
-      : { range };
+      ? { range, color: "#2ee6c5", fill: "rgba(46,230,197,0.10)", chartLabel: `${which} price chart` }
+      : { range, chartLabel: `${which} price chart` };
     NDCharts.drawLineChart(cv, series, opts);
   }
 
@@ -606,6 +606,7 @@
       if (currentToken !== t || !$("#tokenChart")) return;
       if (candles && candles.length > 1) {
         NDCharts.drawCandles($("#tokenChart"), candles, {
+          chartLabel: `${t.ticker} price chart`,
           onHover: (c) => {
             const el = $("#hoverReadout");
             if (el) el.textContent = c ? `O ${fmt.usd(c.o, 6)} · H ${fmt.usd(c.h, 6)} · L ${fmt.usd(c.l, 6)} · C ${fmt.usd(c.c, 6)}` : "";
@@ -620,6 +621,7 @@
     if (!series) { chartError($("#tokenChart"), "Price chart unavailable", () => { if (currentToken === t) paintTokenChart(t); }); return; }
     NDCharts.drawLineChart($("#tokenChart"), series, {
       range,
+      chartLabel: `${t.ticker} price chart`,
       onHover: (p) => {
         const el = $("#hoverReadout");
         if (el) el.textContent = p ? `${fmt.usd(p.v, 6)} · ${new Date(p.t).toLocaleString()}` : "";
@@ -697,7 +699,7 @@
         if (!cv) return;
         NDCharts.drawDonut(cv, s.positions.slice(0, 8).map((p) => ({
           label: p.ticker, pct: s.totalUsd ? (p.value / s.totalUsd) * 100 : 0,
-        })));
+        })), { chartLabel: "Portfolio allocation" });
       });
       const colors = ["#8b7cff", "#2ee6c5", "#ffb020", "#ff6b7a", "#5b8cff", "#c084fc", "#34d399", "#94a3b8"];
       $("#pfAllocLegend").innerHTML = s.positions.slice(0, 8).map((p, i) => `
@@ -776,8 +778,8 @@
     requestAnimationFrame(() => {
       const b = $("#dexVolChart"), d = $("#dexShareChart");
       if (!b || !d) return;
-      NDCharts.drawBars(b, agg.dexes.slice(0, 8).map((x) => ({ label: x.name, pct: (x.vol24 / totVol) * 100 })));
-      NDCharts.drawDonut(d, agg.dexes.map((x) => ({ label: x.name, pct: (x.vol24 / totVol) * 100 })));
+      NDCharts.drawBars(b, agg.dexes.slice(0, 8).map((x) => ({ label: x.name, pct: (x.vol24 / totVol) * 100 })), { chartLabel: "DEX 24h volume" });
+      NDCharts.drawDonut(d, agg.dexes.map((x) => ({ label: x.name, pct: (x.vol24 / totVol) * 100 })), { chartLabel: "DEX volume share" });
     });
     const colors = ["#8b7cff", "#2ee6c5", "#ffb020", "#ff6b7a", "#5b8cff", "#c084fc", "#34d399", "#94a3b8"];
     $("#dexShareLegend").innerHTML = agg.dexes.map((d, i) => `
@@ -868,7 +870,7 @@
       return;
     }
     clearChartError(cv);
-    NDCharts.drawLineChart(cv, series, { range, color: "#2ee6c5", fill: "rgba(46,230,197,0.10)" });
+    NDCharts.drawLineChart(cv, series, { range, color: "#2ee6c5", fill: "rgba(46,230,197,0.10)", chartLabel: "NIGHT price chart" });
   }
   function updateDustCalc() {
     const rawHoldings = Number($("#nightHoldings")?.value ?? 0);
