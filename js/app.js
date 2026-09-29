@@ -76,7 +76,7 @@
   }
   function liqBar(liq, maxLiq) {
     const pct = maxLiq > 0 ? ((liq || 0) / maxLiq * 100).toFixed(1) : 0;
-    return `<div>${fmt.usd(liq)}</div><div class="liq-bar"><i style="width:${pct}%"></i></div>`;
+    return `<div>${fmt.usdx(liq)}</div><div class="liq-bar"><i style="width:${pct}%"></i></div>`;
   }
 
   const skel = (n, h) => Array.from({ length: n }).map(() =>
@@ -250,7 +250,7 @@
       const maxLiq = Math.max(...rows.map((p) => p.liq || 0), 1);
       const tb = $("#ovPools").querySelector("tbody");
       tb.innerHTML = rows.map((p) => `
-        <tr><td><strong>${p.pair}</strong></td><td>${dexCell(p.dex)}</td><td>${liqBar(p.liq, maxLiq)}</td><td>${fmt.usd(p.vol24)}</td></tr>`).join("")
+        <tr><td><strong>${p.pair}</strong></td><td>${dexCell(p.dex)}</td><td>${liqBar(p.liq, maxLiq)}</td><td>${fmt.usdx(p.vol24)}</td></tr>`).join("")
         || (agg.dexes.length
           ? `<tr><td colspan="4" class="muted">No pair data.</td></tr>`
           : `<tr><td colspan="4"><div class="empty" style="padding:18px 8px"><strong>DEX feed unavailable</strong><br><button class="btn btn-sm" type="button" data-retry-dex>Retry</button></div></td></tr>`);
@@ -293,10 +293,10 @@
     const s = WALLET.state;
     if (s.connected && s.positions.length) {
       el.innerHTML = `
-        <div class="pf-mini-worth">${fmt.usd(s.totalUsd)}<span class="muted"> net worth</span></div>
+        <div class="pf-mini-worth">${fmt.usdx(s.totalUsd)}<span class="muted"> net worth</span></div>
         ${s.positions.slice(0, 3).map((p) => `
           <div class="list-row"><div class="token-cell">${icon({ ticker: p.ticker, image: p.image }, 1)}<strong>${p.ticker}</strong></div>
-          <span>${fmt.usd(p.value)}</span></div>`).join("")}
+          <span>${fmt.usdx(p.value)}</span></div>`).join("")}
         <a class="btn btn-sm btn-ghost" href="#portfolio" style="margin-top:8px">Open portfolio</a>`;
     } else {
       el.innerHTML = `<p class="muted" style="font-size:13px;margin:0 0 10px">Connect a Cardano wallet to see your live net worth here.</p>
@@ -540,15 +540,15 @@
       if (bs) bs.innerHTML = `
         <div class="bs-bar"><span class="bs-buy" style="width:${bp}%"></span><span class="bs-sell" style="width:${100 - bp}%"></span></div>
         <div class="bs-legend">
-          <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.num(dex.buys)} buys · ${fmt.usd(dex.buyVol)}</span>
-          <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.num(dex.sells)} sells · ${fmt.usd(dex.sellVol)}</span>
+          <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.num(dex.buys)} buys · ${fmt.usdx(dex.buyVol)}</span>
+          <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.num(dex.sells)} sells · ${fmt.usdx(dex.sellVol)}</span>
         </div>
         <div class="muted" style="font-size:11px;margin-top:6px">24h DEX activity · DexScreener</div>`;
       if (pt) pt.innerHTML = dex.pairs.slice(0, 12).map((p) => `
         <tr><td><strong>${p.dex}</strong></td><td>${p.pair}</td>
         <td>${p.priceUsd ? fmt.usd(p.priceUsd, 6) : "—"}</td>
         <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
-        <td>${fmt.usd(p.vol24)}</td><td>${fmt.usd(p.liq)}</td>
+        <td>${fmt.usdx(p.vol24)}</td><td>${fmt.usdx(p.liq)}</td>
         <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
         <td><a href="${p.url}" target="_blank" rel="noopener">Trade ↗</a></td></tr>`).join("");
     });
@@ -575,14 +575,14 @@
       <div class="bs-legend">
         <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.num(buys)} buys</span>
         <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.num(sells)} sells</span>
-        <span class="muted">${fmt.usd(vol)} 24h vol</span>
+        <span class="muted">${fmt.usdx(vol)} 24h vol</span>
       </div>
       <div class="muted" style="font-size:11px;margin-top:6px">Top ADA pairs across tracked tokens · DexScreener</div>`;
     if (pt) pt.innerHTML = adaPairs.map((p) => `
       <tr><td><strong>${p.dex}</strong></td><td>${p.pair}</td>
       <td>${p.priceUsd ? fmt.usd(p.priceUsd, 6) : "—"}</td>
       <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
-      <td>${fmt.usd(p.vol24)}</td><td>${fmt.usd(p.liq)}</td>
+      <td>${fmt.usdx(p.vol24)}</td><td>${fmt.usdx(p.liq)}</td>
       <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
       <td><a href="${p.url}" target="_blank" rel="noopener">Trade ↗</a></td></tr>`).join("");
   }
@@ -678,7 +678,7 @@
         <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
         <div class="stat-sub ${chClass(ch)}">${sub}</div></div>`;
       $("#pfStats").innerHTML =
-        stat("Net worth", fmt.usd(s.totalUsd), s.updatedAt ? "updated " + fmt.timeAgo(s.updatedAt) : "", 0) +
+        stat("Net worth", fmt.usdx(s.totalUsd), s.updatedAt ? "updated " + fmt.timeAgo(s.updatedAt) : "", 0) +
         stat("Positions", String(s.positions.length), s.nfts.length + " NFTs", 0) +
         stat("Best 24h", best ? best.ticker : "—", best ? fmt.pct(best.ch24) : "", best ? best.ch24 : 0) +
         stat("Worst 24h", worst ? worst.ticker : "—", worst ? fmt.pct(worst.ch24) : "", worst ? worst.ch24 : 0);
@@ -693,14 +693,14 @@
       const colors = ["#8b7cff", "#2ee6c5", "#ffb020", "#ff6b7a", "#5b8cff", "#c084fc", "#34d399", "#94a3b8"];
       $("#pfAllocLegend").innerHTML = s.positions.slice(0, 8).map((p, i) => `
         <span><span><i class="dot-swatch" style="background:${colors[i % colors.length]}"></i>${p.ticker}</span>
-        <span>${s.totalUsd ? ((p.value / s.totalUsd) * 100).toFixed(1) : 0}% · ${fmt.usd(p.value)}</span></span>`).join("");
+        <span>${s.totalUsd ? ((p.value / s.totalUsd) * 100).toFixed(1) : 0}% · ${fmt.usdx(p.value)}</span></span>`).join("");
 
       $("#pf-tokens").innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr>
         <th>Token</th><th>Amount</th><th>Price</th><th>Value</th><th>24h</th></tr></thead><tbody>
         ${s.positions.map((p) => `
           <tr><td><div class="token-cell">${icon({ ticker: p.ticker, image: p.image }, 1)}<div class="token-meta"><strong>${p.ticker}</strong><span>${p.name}</span></div></div></td>
           <td>${p.qty.toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
-          <td>${p.price ? fmt.usd(p.price, 6) : "—"}</td><td>${fmt.usd(p.value)}</td>
+          <td>${p.price ? fmt.usd(p.price, 6) : "—"}</td><td>${fmt.usdx(p.value)}</td>
           <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td></tr>`).join("")
           || `<tr><td colspan="5" class="muted">No token positions found.</td></tr>`}
         </tbody></table></div>`;
@@ -760,8 +760,8 @@
       <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
       <div class="stat-sub">${sub}</div></div>`;
     $("#dexPulse").innerHTML =
-      pstat("Tracked DEX volume 24h", totVolRaw ? fmt.usd(totVolRaw) : "—", "live · DexScreener") +
-      pstat("Liquidity tracked", totLiq ? fmt.usd(totLiq) : "—", agg.pairs.length + " top pairs") +
+      pstat("Tracked DEX volume 24h", totVolRaw ? fmt.usdx(totVolRaw) : "—", "live · DexScreener") +
+      pstat("Liquidity tracked", totLiq ? fmt.usdx(totLiq) : "—", agg.pairs.length + " top pairs") +
       pstat("Pairs tracked", totPairs ? fmt.num(totPairs) : "—", agg.dexes.length + " venues") +
       pstat("Top venue", top ? top.name : "—", top && totVolRaw ? ((top.vol24 / totVol) * 100).toFixed(1) + "% of volume" : "—");
     requestAnimationFrame(() => {
@@ -776,13 +776,13 @@
       <span>${((d.vol24 / totVol) * 100).toFixed(1)}%</span></span>`).join("");
     const dexFeedDown = !agg.dexes.length;
     $("#dexList").innerHTML = agg.dexes.map((d) => `
-      <div class="list-row">${dexCell(d.name)}<span>${fmt.usd(d.vol24)} · ${d.pairs} pairs</span></div>`).join("")
+      <div class="list-row">${dexCell(d.name)}<span>${fmt.usdx(d.vol24)} · ${d.pairs} pairs</span></div>`).join("")
       || dexErrHTML();
     const vis = agg.pairs.slice(0, 20);
     const maxLiq = Math.max(...vis.map((p) => p.liq || 0), 1);
     $("#poolsTable").querySelector("tbody").innerHTML = vis.map((p) => `
       <tr><td><strong>${p.pair}</strong></td><td>${dexCell(p.dex)}</td><td>${liqBar(p.liq, maxLiq)}</td>
-      <td>${fmt.usd(p.vol24)}</td><td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
+      <td>${fmt.usdx(p.vol24)}</td><td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
       <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
       <td><a href="${p.url}" target="_blank" rel="noopener">View ↗</a></td></tr>`).join("")
       || `<tr><td colspan="7">${dexErrHTML()}</td></tr>`;
@@ -813,9 +813,9 @@
       <div class="stat-sub ${chClass(ch)}">${sub}</div></div>`;
     $("#nightStats").innerHTML =
       stat("NIGHT price", fmt.usd(night.price, 4), fmt.pct(night.ch24) + " 24h", night.ch24) +
-      stat("Mcap", fmt.usd(night.mcap), night.rank ? "Rank #" + night.rank : "", 0) +
-      stat("FDV", fmt.usd(night.fdv), fmt.pct(night.ch7d) + " 7d", night.ch7d) +
-      stat("Vol 24h", fmt.usd(night.vol), "CoinGecko", 0);
+      stat("Mcap", fmt.usdx(night.mcap), night.rank ? "Rank #" + night.rank : "", 0) +
+      stat("FDV", fmt.usdx(night.fdv), fmt.pct(night.ch7d) + " 7d", night.ch7d) +
+      stat("Vol 24h", fmt.usdx(night.vol), "CoinGecko", 0);
     $("#dustNote").textContent = ND.MIDNIGHT.generationNote;
     $("#bridgeNote").textContent = ND.MIDNIGHT.bridgeNote;
     updateDustCalc();
@@ -891,7 +891,7 @@
       <tr><td><button class="star-btn on" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
       <td><div class="token-cell" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
       <td>${fmt.usd(t.price, 6)}</td><td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
-      <td>${fmt.usd(t.vol)}</td><td>${fmt.usd(t.mcap)}</td>
+      <td>${fmt.usdx(t.vol)}</td><td>${fmt.usdx(t.mcap)}</td>
       <td><a class="btn btn-sm" href="#token/${t.ticker}">Open</a></td></tr>`).join("");
     tb.querySelectorAll("[data-star]").forEach((b) => b.addEventListener("click", () => toggleWatch(b.dataset.star)));
   }
