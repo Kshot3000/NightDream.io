@@ -212,7 +212,7 @@
       <div class="stat-card"><div class="stat-label">${t.ticker} · ${extra[0]}</div>
       <div class="stat-value">${extra[1]}</div>
       <div class="stat-sub ${chClass(extra[3])}">${extra[2]}</div></div>` : "";
-    const c24 = (t) => [ "price", fmt.usd(t.price, t.price < 1 ? 4 : 2), fmt.pct(t.ch24) + " 24h", t.ch24 ];
+    const c24 = (t) => [ "price", fmt.prx(t.price, t.price < 1 ? 4 : 2), fmt.pct(t.ch24) + " 24h", t.ch24 ];
     $("#overviewStats").innerHTML =
       card(ada, c24(ada)) +
       (ada ? `<div class="stat-card"><div class="stat-label">ADA · mcap</div><div class="stat-value" title="${fmt.exactUsd(ada.mcap)}">${fmt.usd(ada.mcap)}</div><div class="stat-sub">${ada.rank ? "Rank #" + ada.rank : ""}</div></div>
@@ -221,7 +221,7 @@
       card(night, c24(night)) +
       (night ? `<div class="stat-card"><div class="stat-label">NIGHT · mcap</div><div class="stat-value" title="${fmt.exactUsd(night.mcap)}">${fmt.usd(night.mcap)}</div><div class="stat-sub">${night.rank ? "Rank #" + night.rank : ""}</div></div>
       <div class="stat-card"><div class="stat-label">NIGHT · vol 24h</div><div class="stat-value" title="${fmt.exactUsd(night.vol)}">${fmt.usd(night.vol)}</div><div class="stat-sub ${chClass(night.ch7d)}">${fmt.pct(night.ch7d)} 7d</div></div>
-      <div class="stat-card"><div class="stat-label">NIGHT · ATH</div><div class="stat-value">${night.ath ? fmt.usd(night.ath, 4) : "—"}</div><div class="stat-sub"><a href="#midnight">Midnight desk →</a></div></div>` : "");
+      <div class="stat-card"><div class="stat-label">NIGHT · ATH</div><div class="stat-value">${night.ath ? fmt.prx(night.ath, 4) : "—"}</div><div class="stat-sub"><a href="#midnight">Midnight desk →</a></div></div>` : "");
     paintFresh();
     drawOverviewChart("ADA", chartRanges.ADA);
     drawOverviewChart("NIGHT", chartRanges.NIGHT);
@@ -237,7 +237,7 @@
     $("#ovTrending").innerHTML = trending.map((t, i) => `
       <div class="list-row" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">
         <div class="token-cell"><span class="rank-badge${i < 3 ? " top" : ""}">#${i + 1}</span>${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div>
-        <div style="text-align:right"><div>${fmt.usd(t.price, 6)}</div><div class="${chClass(t.ch24)}" style="font-size:12px">${fmt.pct(t.ch24)}</div></div>
+        <div style="text-align:right"><div>${fmt.prx(t.price, 6)}</div><div class="${chClass(t.ch24)}" style="font-size:12px">${fmt.pct(t.ch24)}</div></div>
       </div>`).join("");
     renderWatchPanel();
     renderPfMiniPanel();
@@ -363,7 +363,7 @@
         <td><button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
         <td class="rank-cell">${i + 1}</td>
         <td><div class="token-cell" data-goto="token/${t.ticker}">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
-        <td>${fmt.usd(t.price, t.price < 0.01 ? 6 : 4)}</td>
+        <td>${fmt.prx(t.price, t.price < 0.01 ? 6 : 4)}</td>
         <td class="${chClass(t.ch1h)}">${fmt.pct(t.ch1h)}</td>
         <td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
         <td class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)}</td>
@@ -396,7 +396,7 @@
         <div class="big-avatar">${icon(t)}</div>
         <div style="flex:1;min-width:200px">
           <h1>${t.name} <button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}" style="font-size:18px">★</button></h1>
-          <div class="price-row"><span class="price">${fmt.usd(t.price, t.price < 0.01 ? 6 : 4)}</span>
+          <div class="price-row"><span class="price">${fmt.prx(t.price, t.price < 0.01 ? 6 : 4)}</span>
             <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)} 24h</span>
             <span class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)} 7d</span></div>
           <div class="links-row" id="tokenLinks"></div>
@@ -453,8 +453,8 @@
     };
     statRow([
       ["Mcap", fmt.usdx(t.mcap)], ["FDV", fmt.usdx(t.fdv)],
-      ["Vol 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
-      ["ATL", t.atl ? fmt.usd(t.atl, 6) : "—"], ["Category", t.category],
+      ["Vol 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.prx(t.ath, 4) : "—"],
+      ["ATL", t.atl ? fmt.prx(t.atl, 6) : "—"], ["Category", t.category],
     ]);
     paintTokenChart(t);
 
@@ -480,7 +480,7 @@
       const md = d.market_data || {};
       statRow([
         ["Mcap", fmt.usdx(t.mcap)], ["FDV", fmt.usdx(t.fdv)],
-        ["Vol 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
+        ["Vol 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.prx(t.ath, 4) : "—"],
         ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
         ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],
         ["Max supply", md.max_supply ? fmt.num(md.max_supply) : "—"],
@@ -489,8 +489,8 @@
       const ts = $("#tokenStats");
       if (ts) ts.innerHTML = [
         ["Market cap", fmt.usdx(t.mcap)], ["FDV", fmt.usdx(t.fdv)],
-        ["Volume 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.usd(t.ath, 4) : "—"],
-        ["ATL", t.atl ? fmt.usd(t.atl, 6) : "—"],
+        ["Volume 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.prx(t.ath, 4) : "—"],
+        ["ATL", t.atl ? fmt.prx(t.atl, 6) : "—"],
         ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
         ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],
         ["Max supply", md.max_supply ? fmt.num(md.max_supply) : "—"],
@@ -546,7 +546,7 @@
         <div class="muted" style="font-size:11px;margin-top:6px">24h DEX activity · DexScreener</div>`;
       if (pt) pt.innerHTML = dex.pairs.slice(0, 12).map((p) => `
         <tr><td><strong>${p.dex}</strong></td><td>${p.pair}</td>
-        <td>${p.priceUsd ? fmt.usd(p.priceUsd, 6) : "—"}</td>
+        <td>${p.priceUsd ? fmt.prx(p.priceUsd, 6) : "—"}</td>
         <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
         <td>${fmt.usdx(p.vol24)}</td><td>${fmt.usdx(p.liq)}</td>
         <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
@@ -580,7 +580,7 @@
       <div class="muted" style="font-size:11px;margin-top:6px">Top ADA pairs across tracked tokens · DexScreener</div>`;
     if (pt) pt.innerHTML = adaPairs.map((p) => `
       <tr><td><strong>${p.dex}</strong></td><td>${p.pair}</td>
-      <td>${p.priceUsd ? fmt.usd(p.priceUsd, 6) : "—"}</td>
+      <td>${p.priceUsd ? fmt.prx(p.priceUsd, 6) : "—"}</td>
       <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
       <td>${fmt.usdx(p.vol24)}</td><td>${fmt.usdx(p.liq)}</td>
       <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
@@ -812,7 +812,7 @@
       <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
       <div class="stat-sub ${chClass(ch)}">${sub}</div></div>`;
     $("#nightStats").innerHTML =
-      stat("NIGHT price", fmt.usd(night.price, 4), fmt.pct(night.ch24) + " 24h", night.ch24) +
+      stat("NIGHT price", fmt.prx(night.price, 4), fmt.pct(night.ch24) + " 24h", night.ch24) +
       stat("Mcap", fmt.usdx(night.mcap), night.rank ? "Rank #" + night.rank : "", 0) +
       stat("FDV", fmt.usdx(night.fdv), fmt.pct(night.ch7d) + " 7d", night.ch7d) +
       stat("Vol 24h", fmt.usdx(night.vol), "CoinGecko", 0);
@@ -890,7 +890,7 @@
     tb.innerHTML = ids.map((t) => `
       <tr><td><button class="star-btn on" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
       <td><div class="token-cell" style="cursor:pointer" onclick="location.hash='#token/${t.ticker}'">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></div></td>
-      <td>${fmt.usd(t.price, 6)}</td><td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
+      <td>${fmt.prx(t.price, 6)}</td><td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
       <td>${fmt.usdx(t.vol)}</td><td>${fmt.usdx(t.mcap)}</td>
       <td><a class="btn btn-sm" href="#token/${t.ticker}">Open</a></td></tr>`).join("");
     tb.querySelectorAll("[data-star]").forEach((b) => b.addEventListener("click", () => toggleWatch(b.dataset.star)));

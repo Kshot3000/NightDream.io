@@ -82,6 +82,13 @@ ND.fmt = {
     const abbr = this.usd(n, d), exact = this.exactUsd(n);
     return exact === abbr ? abbr : `<span title="${exact}">${abbr}</span>`;
   },
+  // Price with the exact value in a title tooltip (no tooltip when identical).
+  prx(n, d = 4) {
+    if (n == null || Number.isNaN(n)) return "—";
+    if (n === 0) return this.usd(0);
+    const abbr = this.usd(n, d), exact = this.exactUsd(n);
+    return exact === abbr ? abbr : `<span title="${exact}">${abbr}</span>`;
+  },
   timeAgo(ts) {
     const t = typeof ts === "number" ? ts : new Date(ts).getTime();
     const d = (Date.now() - t) / 1000;
