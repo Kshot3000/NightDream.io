@@ -651,7 +651,7 @@
       $("#pfDash").style.display = "none";
       const cards = provs.length ? provs.map((p) => `
         <button class="wallet-card" data-wallet="${p.key}" type="button">
-          ${p.icon ? `<img src="${p.icon}" alt="">` : `<span class="token-avatar">${p.name.charAt(0)}</span>`}
+          ${p.icon ? `<img src="${p.icon}" alt="" loading="lazy" decoding="async">` : `<span class="token-avatar">${p.name.charAt(0)}</span>`}
           <strong>${p.name}</strong><span class="muted">Connect</span>
         </button>`).join("")
         : `<div class="empty"><strong>No Cardano wallet extension detected</strong><span class="muted">Install one to continue:</span>
