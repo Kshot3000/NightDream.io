@@ -796,7 +796,18 @@
   /* ——— Midnight ——— */
   async function renderMidnight() {
     const night = ND.TOKENS.find((t) => t.cg === "midnight-3");
-    if (!night) { $("#nightStats").innerHTML = skelCards(4); return; }
+    if (!night) {
+      // Fail-soft instead of endless skeletons: fields render as —, and the
+      // DUST calculator keeps working off the network-parameter model
+      // (the 5-minute refresh loop re-checks for NIGHT automatically).
+      $("#nightStats").innerHTML = ["NIGHT price", "Mcap", "FDV", "Vol 24h"].map((l) =>
+        `<div class="stat-card"><div class="stat-label">${l}</div><div class="stat-value">—</div>` +
+        `<div class="stat-sub">NIGHT data unavailable · retries automatically</div></div>`).join("");
+      $("#dustNote").textContent = ND.MIDNIGHT.generationNote;
+      $("#bridgeNote").textContent = ND.MIDNIGHT.bridgeNote;
+      updateDustCalc();
+      return;
+    }
     const stat = (label, value, sub, ch) => `
       <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
       <div class="stat-sub ${chClass(ch)}">${sub}</div></div>`;
@@ -842,15 +853,26 @@
   async function drawNightChart(range) {
     const days = range === "24H" ? 1 : range === "7D" ? 7 : 30;
     const series = await LIVE.chart("midnight-3", days);
-    if (!series || currentRoute !== "midnight" || !$("#nightDeepChart")) return;
-    NDCharts.drawLineChart($("#nightDeepChart"), series, { range, color: "#2ee6c5", fill: "rgba(46,230,197,0.10)" });
+    const cv = $("#nightDeepChart");
+    if (!series || currentRoute !== "midnight" || !cv) {
+      if (currentRoute === "midnight" && cv) chartError(cv, "NIGHT chart unavailable", () => drawNightChart(range));
+      return;
+    }
+    clearChartError(cv);
+    NDCharts.drawLineChart(cv, series, { range, color: "#2ee6c5", fill: "rgba(46,230,197,0.10)" });
   }
   function updateDustCalc() {
-    const holdings = Number($("#nightHoldings")?.value || 0);
-    // round to 4dp: keeps float artifacts (e.g. 0.014600000344216824) out of the math
-    const factor = Number(Number($("#genFactor")?.value || 0.0146).toFixed(4));
+    const rawHoldings = Number($("#nightHoldings")?.value ?? 0);
+    const rawFactor = Number($("#genFactor")?.value ?? 0.0146);
     const el = $("#dustResult");
     if (!el) return;
+    if (!Number.isFinite(rawHoldings) || !Number.isFinite(rawFactor) || rawHoldings < 0 || rawFactor < 0) {
+      el.innerHTML = `<strong class="down">Invalid input</strong><br/><span class="muted">Enter a non-negative NIGHT holding and generation factor.</span>`;
+      return;
+    }
+    const holdings = rawHoldings;
+    // round to 4dp: keeps float artifacts (e.g. 0.014600000344216824) out of the math
+    const factor = Number(rawFactor.toFixed(4));
     const cap = holdings * ND.MIDNIGHT.dustPerNightMax;
     const rate = holdings * factor;
     el.innerHTML = `<strong>Capacity:</strong> ~${fmt.num(cap)} DUST max (5 × NIGHT)<br/>
