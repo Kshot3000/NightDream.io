@@ -1,6 +1,9 @@
-/* NightDream — Cardano token universe (CoinGecko cardano-platform list, generated 2026-09-26).
+/* NightDream — Cardano token universe (top tokens by market cap, sourced from
+   CoinGecko cardano-ecosystem, curated 2026-09-26; refresh when drifted by >~5).
    cg: CoinGecko id · policy/asset: on-chain identifiers (56-hex policy + hex asset name).
-   Regenerate: see scripts/gen_tokens.py */
+   Regen: pull /coins/markets?category=cardano-ecosystem&order=market_cap_desc, keep the
+   top ~21, and resolve each policy id via the CoinGecko contract_addresses cardano
+   platform (or Koios); verify every entry renders fail-soft as — when data is missing. */
 window.NDU = window.NDU || {};
 window.NDU.TOKENS = [
   { cg: "fetch-ai", ticker: "FET", name: "Artificial Superintelligence Alliance", policy: "e824c0011176f0926ad51f492bcc63ac6a03a589653520839dc7e3d9", asset: "464554" },
