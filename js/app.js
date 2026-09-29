@@ -60,6 +60,19 @@
     const ch = String(ticker || "?").replace(/^\$/, "").charAt(0).toUpperCase() || "?";
     return `<span class="${cls}">${ch}</span>`;
   };
+  /* Honest feed badge: shown when the table was filled by the DexScreener
+     fallback because CoinGecko was unreachable from the visitor's network. */
+  function feedBadge() {
+    if (window.LIVE && LIVE.feed && LIVE.feed() === "dexscreener") {
+      return `<span class="tag fallback" title="CoinGecko is unreachable from your network — showing live DexScreener prices instead. Market-cap ranks and sparklines are unavailable on the fallback feed.">Fallback feed</span>`;
+    }
+    return "";
+  }
+  function paintFeedBadges() {
+    const b = feedBadge();
+    const m = $("#feedBadgeSlot"); if (m) m.innerHTML = b;
+    const o = $("#ovFeedBadge"); if (o) o.innerHTML = b;
+  }
 
   /* DEX venue logos (self-hosted ecosystem assets) keyed by DexScreener dexId */
   const DEX_LOGOS = {
@@ -206,6 +219,7 @@
       }
       return;
     }
+    paintFeedBadges();
     const ada = ND.getToken("ADA");
     const night = T.find((t) => t.cg === "midnight-3");
     const c24 = (t) => [ "price", fmt.prx(t.price, t.price < 1 ? 4 : 2), fmt.pct(t.ch24) + " 24h", t.ch24 ];
@@ -350,6 +364,7 @@
     }
     renderMarketTokens();
     paintFresh();
+    paintFeedBadges();
   }
   function renderMarketTokens() {
     const tb = $("#marketsTable").querySelector("tbody");

@@ -1,7 +1,10 @@
 /* NightDream — live data layer.
    Sources (all keyless, CORS-open, verified 2026-09-26):
    - CoinGecko  /api/v3            → prices, mcap, volume, charts, OHLC, metadata
-   - DexScreener /latest/dex       → DEX pairs, buys/sells, liquidity
+   - DexScreener /latest/dex       → DEX pairs, buys/sells, liquidity —
+     ALSO the fallback price feed: when CoinGecko is unreachable/blocked, the
+     token table is filled from per-token DexScreener quotes (+ MinSwap agg
+     for ADA) so the site never goes blank on a single feed failure.
    - Koios      /api/v1            → on-chain asset info, holders, address/wallet data
    - MinSwap aggregator            → ADA/USD reference price
    - NightForge mainnet.nightforge.jp → Midnight network analytics
@@ -82,12 +85,62 @@ window.LIVE = (function () {
 
   const MIN5 = 5 * 60 * 1000, MIN30 = 30 * 60 * 1000, HOUR6 = 6 * 3600 * 1000;
 
-  /* ——— Token markets (ONE batched CoinGecko call) ——— */
+  /* ——— Token markets (ONE batched CoinGecko call, DexScreener fallback) ——— */
   let _marketsInflight = null;
+  let _feed = null; /* "coingecko" | "dexscreener" | null — which feed filled the table */
   function allIds() {
     const ids = window.NDU.TOKENS.map((t) => t.cg);
     ids.push("cardano");
     return [...new Set(ids)].join(",");
+  }
+  /* Fallback when CoinGecko is unreachable or blocking the visitor's network:
+     per-token DexScreener quotes (cardano chain, best-liquidity pair) plus the
+     MinSwap aggregator for ADA. Real data only — tokens without a quoted pair
+     are omitted, and mcap / rank / sparkline stay null (rendered as —). */
+  async function fallbackMarkets() {
+    const seen = new Set();
+    const jobs = [];
+    for (const u of window.NDU.TOKENS) {
+      if (!u.policy || seen.has(u.cg)) continue;
+      seen.add(u.cg);
+      jobs.push({ uni: u, unit: u.policy + (u.asset || "") });
+    }
+    const CONC = 6, out = [];
+    const adaP = adaPrice().catch(() => null);
+    for (let i = 0; i < jobs.length; i += CONC) {
+      const batch = await Promise.all(jobs.slice(i, i + CONC).map(async ({ uni, unit }) => {
+        try {
+          const d = await dexPairs(unit);
+          const p = d && d.pairs && d.pairs[0];
+          if (!p || p.priceUsd == null) return null;
+          return {
+            id: uni.ticker, ticker: uni.ticker, name: uni.name, cg: uni.cg,
+            policy: uni.policy, asset: uni.asset, unit,
+            price: p.priceUsd, ch1h: null, ch24: p.ch24, ch7d: null,
+            mcap: null, fdv: null, vol: p.vol24, liq: p.liq,
+            holders: null, image: null, spark: [],
+            rank: null, ath: null, atl: null,
+            category: categoryFor(uni.cg, uni.ticker),
+            fallback: true,
+          };
+        } catch (_) { return null; }
+      }));
+      for (const r of batch) if (r) out.push(r);
+    }
+    const ada = await adaP;
+    if (ada && ada.price != null) {
+      out.push({
+        id: "ADA", ticker: "ADA", name: "Cardano", cg: "cardano",
+        policy: "", asset: "", unit: "lovelace",
+        price: ada.price, ch1h: null, ch24: ada.ch24, ch7d: null,
+        mcap: null, fdv: null, vol: null, liq: null,
+        holders: null, image: null, spark: [],
+        rank: null, ath: null, atl: null,
+        category: "L1", fallback: true,
+      });
+    }
+    out.sort((a, b) => (a.ticker === "ADA" ? -1 : b.ticker === "ADA" ? 1 : (b.vol || 0) - (a.vol || 0)));
+    return out;
   }
   async function markets(force) {
     if (force) { /* fall through and refetch */ }
@@ -119,8 +172,15 @@ window.LIVE = (function () {
             category: categoryFor(r.id, ticker),
           });
         }
-        cacheSet(key, out, MIN5);
+        _feed = "coingecko";
+      } else {
+        /* CoinGecko unreachable/blocked — fall back to DexScreener quotes so the
+           site keeps showing real prices instead of going blank. */
+        const fb = await fallbackMarkets();
+        if (fb.length) { out.push(...fb); _feed = "dexscreener"; }
+        else _feed = null;
       }
+      if (out.length) cacheSet(key, out, MIN5);
       _marketsInflight = null;
       return out.length ? out : cacheGet(key) || null;
     })();
@@ -274,6 +334,7 @@ window.LIVE = (function () {
     koiosAsset, koiosHolders, koiosAddressInfo, koiosAccountAssets, koiosAddressTxs, koiosTip,
     adaPrice, priceForUnit, categoryFor,
     nightforgeOverview, nightforgeHealth,
+    feed: () => _feed,
     cacheGet, cacheSet, cacheDel,
     CG, KOIOS, DEXS, NF,
     dexUp: () => dexUp,
