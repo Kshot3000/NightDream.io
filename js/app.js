@@ -1122,6 +1122,17 @@
     $("#cmdkInput")?.addEventListener("input", (e) => paintCmdk(e.target.value));
     $("#cmdkInput")?.addEventListener("keydown", (e) => {
       if (e.key === "Escape") closeCmdk();
+      if (e.key === "Tab") {
+        // focus trap: aria-modal=true claims the background is inert, so Tab
+        // must cycle within the dialog instead of leaking to page content
+        const els = [...$("#cmdk").querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')]
+          .filter((el) => !el.disabled && el.getClientRects().length);
+        if (!els.length) { e.preventDefault(); return; }
+        const first = els[0], last = els[els.length - 1];
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+        return;
+      }
       if (e.key === "Enter") {
         const active = $(".cmdk-item.active");
         if (active) { closeCmdk(); navigate(active.dataset.hash); }
