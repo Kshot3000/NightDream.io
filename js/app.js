@@ -801,17 +801,45 @@
       $("#pfDisconnect")?.addEventListener("click", () => { WALLET.disconnect(); this.render(); renderPfMiniPanel(); });
 
       $("#pf-activity").innerHTML = `<div class="table-wrap"><table class="data-table"><thead><tr><th>Transaction</th><th>Time</th><th>Fee</th></tr></thead>
-        <tbody id="pfActivityBody"><tr><td colspan="3">${skel(3)}</td></tr></tbody></table></div>`;
-      WALLET.tradeHistory(15).then((txs) => {
+        <tbody id="pfActivityBody"></tbody></table></div>`;
+      const paintActivity = () => {
         const tb = $("#pfActivityBody");
         if (!tb) return;
-        if (!txs) { tb.innerHTML = `<tr><td colspan="3" class="muted">Activity unavailable.</td></tr>`; return; }
-        tb.innerHTML = txs.map((x) => `
-          <tr><td><a href="https://cardanoscan.io/transaction/${x.tx_hash}" target="_blank" rel="noopener"><code>${x.tx_hash.slice(0, 12)}…</code> ↗</a></td>
-          <td>${x.block_time ? new Date(x.block_time * 1000).toLocaleString() : "—"}</td>
-          <td class="muted">${x.fee ? fmt.ada(Number(x.fee) / 1e6) : ""}</td></tr>`).join("")
-          || `<tr><td colspan="3" class="muted">No recent transactions.</td></tr>`;
-      });
+        /* No addr1… payment address at all (stake1-only tracking): a feed
+           failure and a missing address must not look identical — show why
+           there's nothing to load, without a misleading Retry button. */
+        const hasPayAddr = WALLET.state.address || WALLET.state.watchOnly.some((w) => w.startsWith("addr1"));
+        if (!hasPayAddr) {
+          tb.innerHTML = `<tr><td colspan="3" class="muted">Activity needs a payment address (addr1…)&thinsp;—&thinsp;stake addresses track assets, not transactions.</td></tr>`;
+          return;
+        }
+        tb.innerHTML = `<tr><td colspan="3">${skel(3)}</td></tr>`;
+        WALLET.tradeHistory(15).then((txs) => {
+          const t2 = $("#pfActivityBody");
+          if (!t2) return;
+          if (!txs) {
+            /* Fail-soft: Koios address_txs returned nothing — explained
+               message + retry instead of the old silent "unavailable".
+               Failed fetches aren't cached, so retry re-hits Koios. */
+            t2.innerHTML = `<tr><td colspan="3"><div class="empty" style="padding:16px 8px"><strong>Activity unavailable</strong>` +
+              `<span class="muted" style="display:block;margin-top:4px">Koios appears to be unreachable from your network. Nothing was changed locally.</span><br>` +
+              `<button class="btn btn-sm" type="button" data-retry-activity>Retry</button></div></td></tr>`;
+            t2.querySelectorAll("[data-retry-activity]").forEach((b) =>
+              b.addEventListener("click", (e) => {
+                e.stopPropagation();
+                b.disabled = true; b.textContent = "Retrying…";
+                paintActivity();
+              }));
+            return;
+          }
+          t2.innerHTML = txs.map((x) => `
+            <tr><td><a href="https://cardanoscan.io/transaction/${x.tx_hash}" target="_blank" rel="noopener"><code>${x.tx_hash.slice(0, 12)}…</code> ↗</a></td>
+            <td>${x.block_time ? new Date(x.block_time * 1000).toLocaleString() : "—"}</td>
+            <td class="muted">${x.fee ? fmt.ada(Number(x.fee) / 1e6) : ""}</td></tr>`).join("")
+            || `<tr><td colspan="3" class="muted">No recent transactions.</td></tr>`;
+        });
+      };
+      paintActivity();
     },
   };
   window.WALLET_UI = WALLET_UI;
