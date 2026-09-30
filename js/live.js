@@ -1,6 +1,7 @@
 /* NightDream — live data layer.
    Sources (all keyless, CORS-open, verified 2026-09-26):
    - CoinGecko  /api/v3            → prices, mcap, volume, charts, OHLC, metadata
+     (x-cg-demo-api-key header; keyed requests pass CG's edge protection)
    - DexScreener /latest/dex       → DEX pairs, buys/sells, liquidity —
      ALSO the fallback price feed: when CoinGecko is unreachable/blocked, the
      token table is filled from per-token DexScreener quotes (+ MinSwap agg
@@ -12,6 +13,13 @@
    UI must always handle null with skeletons / error states + retry. */
 window.LIVE = (function () {
   const CG = "https://api.coingecko.com/api/v3";
+  /* CoinGecko demo API key (Kyle's, free tier). Sent as a header on every CG
+     request — keyed requests pass through CoinGecko's edge bot protection
+     that otherwise 403s anonymous calls from many networks. NOTE: this is a
+     client-side static site, so the key is visible in the served JS by design;
+     it's a free key with no billing attached — rotate it in the CoinGecko
+     dashboard if the quota ever gets abused. */
+  const CG_DEMO_KEY = "CG-LWf3eRkt8KF6e95Fm9ELa3EF";
   const KOIOS = "https://api.koios.rest/api/v1";
   const DEXS = "https://api.dexscreener.com";
   /* DexScreener reachability flag — set by jget so the UI can tell a feed
@@ -51,7 +59,9 @@ window.LIVE = (function () {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeout || 20000);
     try {
-      const r = await fetch(url, { ...fetchInit, signal: ctrl.signal });
+      const headers = { ...(fetchInit.headers || {}) };
+      if (url.indexOf(CG) === 0) headers["x-cg-demo-api-key"] = CG_DEMO_KEY;
+      const r = await fetch(url, { ...fetchInit, headers, signal: ctrl.signal });
       if (!r.ok) throw new Error("HTTP " + r.status);
       const j = await r.json();
       cacheSet(url, j, ttlMs);
