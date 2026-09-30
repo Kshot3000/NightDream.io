@@ -668,6 +668,11 @@ canvas.chart-lg { width: 100% !important; height: 100% !important; }
   gap: 8px;
   font-size: 12px;
   max-width: 100%;
+  /* ~390px: the nowrap donation address is a 600px+ unbreakable run; as a flex
+     item its automatic minimum size (min-content) would expand the whole page
+     layout viewport. min-width:0 lets it shrink; the code keeps its own
+     max-width + ellipsis. */
+  min-width: 0;
 }
 .footer-donate code {
   font-family: var(--mono);
@@ -785,6 +790,13 @@ canvas.chart-lg { width: 100% !important; height: 100% !important; }
      palette opens on tap too) and the connect button must never wrap mid-label. */
   .search-hint { display: none; }
   .topbar .btn { white-space: nowrap; flex-shrink: 0; }
+  /* ~390px: menu + search + actions can't all fit at natural sizes — the
+     nowrap connect button + network dot forced the whole layout viewport
+     ~110px wider than the device. Hide the dot-only chip (freshness caption
+     is already hidden here) and slim the button; let the search shrink. */
+  .network-chip { display: none; }
+  .topbar .btn { padding: 8px 12px; font-size: 12.5px; }
+  .search { min-width: 0; }
   /* ~390px filter bar: the 200px input min-width plus a select plus gaps could
      exceed a 360px viewport's content width. Let the input grow/shrink freely. */
   .filters input { min-width: 0; flex: 1 1 160px; }
