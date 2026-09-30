@@ -16,11 +16,11 @@ candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), an
 - **Midnight desk** — live NIGHT stats + chart, DUST generation model calculator, Cardano ↔ Midnight bridge explainer
 - **Watchlist + ⌘K command palette** — persisted locally
 
-## Data sources (all keyless, no backend)
+## Data sources (no backend)
 
 | Source | Used for |
 |---|---|
-| [CoinGecko](https://www.coingecko.com) | Prices, mcap, volume, % changes, sparklines, charts, OHLC candles, token metadata |
+| [CoinGecko](https://www.coingecko.com) | Prices, mcap, volume, % changes, sparklines, charts, OHLC candles, token metadata — requested with the owner's free demo key (sent as a query param, visible in served JS by design) |
 | [DexScreener](https://dexscreener.com) | Cardano DEX pairs, liquidity, 24h buys/sells |
 | [Koios](https://www.koios.rest) | On-chain asset info, holder counts, address/wallet balances |
 | [MinSwap aggregator](https://minswap.org) | ADA/USD reference price |
