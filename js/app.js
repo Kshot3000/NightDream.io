@@ -129,6 +129,18 @@
       b.disabled = true; b.textContent = "Retrying…";
       paintMidnightNetwork();
     }));
+  /* Koios-feed error state (token-detail On-chain panel): explained message +
+     retry — failed Koios fetches aren't cached, so retry just re-hits Koios. */
+  const koiosErrHTML = () =>
+    `<div class="empty" style="padding:16px 8px"><strong>On-chain data unavailable</strong>` +
+    `<span class="muted" style="display:block;margin-top:4px">Koios appears to be unreachable from your network, or this asset isn't indexed yet. Nothing was changed locally.</span><br>` +
+    `<button class="btn btn-sm" type="button" data-retry-koios>Retry</button></div>`;
+  const bindKoiosRetry = (root, repaint) => root?.querySelectorAll("[data-retry-koios]").forEach((b) =>
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      b.disabled = true; b.textContent = "Retrying…";
+      repaint();
+    }));
   /* Chart error overlay (canvas stays, dimmed): message + retry inside .chart-wrap */
   function chartError(canvas, msg, retry) {
     const wrap = canvas?.closest(".chart-wrap");
@@ -530,31 +542,42 @@
       ].map(([k, v]) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`).join("");
     });
 
-    // on-chain
-    (async () => {
+    // on-chain (Koios)
+    const paintOnchain = async () => {
       const oc = $("#tokenOnchain");
+      if (!oc) return;
       if (!t.policy) {
-        if (oc) oc.innerHTML = `
+        oc.innerHTML = `
           <div class="kv"><span>Type</span><span>Native asset (ADA)</span></div>
           <div class="kv"><span>Explorer</span><a href="https://cardanoscan.io" target="_blank" rel="noopener">Cardanoscan ↗</a></div>`;
         return;
       }
+      oc.innerHTML = skel(5);
       const info = await LIVE.koiosAsset(t.policy, t.asset);
       if (currentToken !== t || !$("#tokenOnchain")) return;
+      if (!info) {
+        /* Fail-soft: unexplained — rows tell the visitor nothing, and a null
+           asset_info can mean Koios is unreachable OR the asset simply isn't
+           indexed — so show why + retry instead of silent placeholders. */
+        $("#tokenOnchain").innerHTML = koiosErrHTML();
+        bindKoiosRetry($("#tokenOnchain"), paintOnchain);
+        return;
+      }
       const meta = (info && info.token_registry_metadata) || {};
       const dec = info && info.decimals != null ? Number(info.decimals)
         : meta.decimals != null ? Number(meta.decimals) : 0;
       $("#tokenOnchain").innerHTML = `
         <div class="kv"><span>Policy ID</span><button class="asset-id" data-copy="${t.policy}" title="${t.policy}">${fmt.hexShort(t.policy, 16)}</button></div>
-        <div class="kv"><span>Fingerprint</span><code style="font-size:11px">${info ? info.fingerprint : "—"}</code></div>
+        <div class="kv"><span>Fingerprint</span><code style="font-size:11px">${info.fingerprint || "—"}</code></div>
         <div class="kv"><span>Decimals</span><span>${meta.decimals != null ? meta.decimals : "—"}</span></div>
-        <div class="kv"><span>Total supply</span><span>${info ? fmt.numx(Number(info.total_supply) / Math.pow(10, dec)) : "—"}</span></div>
+        <div class="kv"><span>Total supply</span><span>${fmt.numx(Number(info.total_supply) / Math.pow(10, dec))}</span></div>
         <div class="kv"><span>Explorer</span><a href="https://cardanoscan.io/token/${t.unit}" target="_blank" rel="noopener">Cardanoscan ↗</a></div>`;
       const cp = $("#tokenOnchain [data-copy]");
       if (cp) cp.addEventListener("click", () => {
         navigator.clipboard?.writeText(cp.dataset.copy).then(() => toast("Policy ID copied"));
       });
-    })();
+    };
+    paintOnchain();
 
     // buys/sells + pairs
     LIVE.dexPairs(t.unit).then((dex) => {
