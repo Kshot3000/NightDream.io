@@ -1,7 +1,7 @@
 /* NightDream — live data layer.
    Sources (all keyless, CORS-open, verified 2026-09-26):
    - CoinGecko  /api/v3            → prices, mcap, volume, charts, OHLC, metadata
-     (x-cg-demo-api-key header; keyed requests pass CG's edge protection)
+     (x_cg_demo_api_key query param; keyed requests pass CG's edge protection)
    - DexScreener /latest/dex       → DEX pairs, buys/sells, liquidity —
      ALSO the fallback price feed: when CoinGecko is unreachable/blocked, the
      token table is filled from per-token DexScreener quotes (+ MinSwap agg
@@ -13,9 +13,11 @@
    UI must always handle null with skeletons / error states + retry. */
 window.LIVE = (function () {
   const CG = "https://api.coingecko.com/api/v3";
-  /* CoinGecko demo API key (Kyle's, free tier). Sent as a header on every CG
-     request — keyed requests pass through CoinGecko's edge bot protection
-     that otherwise 403s anonymous calls from many networks. NOTE: this is a
+  /* CoinGecko demo API key (Kyle's, free tier). Appended as a query parameter on
+     every CG request — NOT as a header: a custom header triggers a CORS
+     preflight (OPTIONS), which CoinGecko's edge 403s on exactly the networks
+     this key is meant to reach through. Keyed requests pass the edge
+     protection that 403s anonymous calls from many networks. NOTE: this is a
      client-side static site, so the key is visible in the served JS by design;
      it's a free key with no billing attached — rotate it in the CoinGecko
      dashboard if the quota ever gets abused. */
@@ -59,9 +61,11 @@ window.LIVE = (function () {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeout || 20000);
     try {
-      const headers = { ...(fetchInit.headers || {}) };
-      if (url.indexOf(CG) === 0) headers["x-cg-demo-api-key"] = CG_DEMO_KEY;
-      const r = await fetch(url, { ...fetchInit, headers, signal: ctrl.signal });
+      const fetchUrl =
+        url.indexOf(CG) === 0
+          ? url + (url.indexOf("?") === -1 ? "?" : "&") + "x_cg_demo_api_key=" + CG_DEMO_KEY
+          : url;
+      const r = await fetch(fetchUrl, { ...fetchInit, signal: ctrl.signal });
       if (!r.ok) throw new Error("HTTP " + r.status);
       const j = await r.json();
       cacheSet(url, j, ttlMs);
