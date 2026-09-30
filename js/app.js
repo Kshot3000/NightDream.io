@@ -405,6 +405,8 @@
           const wo = $("#watchOnly"); if (wo) wo.checked = false;
           $$("#marketTabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.mtab === "all"));
           renderMarketTokens();
+          const search = $("#marketSearch");
+          if (search) search.focus({ preventScroll: true });
         }));
       return;
     }
