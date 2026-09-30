@@ -379,7 +379,16 @@
     const mc = $("#marketCount");
     if (mc) mc.textContent = `${list.length} assets`;
     if (!list.length) {
-      tb.innerHTML = `<tr><td colspan="9"><div class="empty" style="padding:40px 20px"><strong>No tokens match your search or filters</strong><span class="muted">Try a different search term or category.</span></div></td></tr>`;
+      tb.innerHTML = `<tr><td colspan="9"><div class="empty" style="padding:40px 20px"><strong>No tokens match your search or filters</strong><span class="muted">Try a different search term or category.</span><br><button class="btn btn-sm" type="button" data-clear-filters>Clear search &amp; filters</button></div></td></tr>`;
+      tb.querySelectorAll("[data-clear-filters]").forEach((b) =>
+        b.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const ms = $("#marketSearch"); if (ms) ms.value = "";
+          const mc = $("#marketCat"); if (mc) mc.value = "";
+          const wo = $("#watchOnly"); if (wo) wo.checked = false;
+          $$("#marketTabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.mtab === "all"));
+          renderMarketTokens();
+        }));
       return;
     }
     tb.innerHTML = list.map((t, i) => `
