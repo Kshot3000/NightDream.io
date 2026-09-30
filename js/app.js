@@ -174,7 +174,12 @@
     currentRoute = ROUTES.includes(route) ? route : "overview";
     closeSidebar();
     $$(".section").forEach((p) => p.classList.toggle("visible", p.dataset.section === currentRoute));
-    $$("[data-route]").forEach((a) => a.classList.toggle("active", a.dataset.route === currentRoute));
+    $$("[data-route]").forEach((a) => {
+      const on = a.dataset.route === currentRoute;
+      a.classList.toggle("active", on);
+      if (on) a.setAttribute("aria-current", "page");
+      else a.removeAttribute("aria-current");
+    });
     document.title = "NightDream.xyz — " + currentRoute.charAt(0).toUpperCase() + currentRoute.slice(1);
     if (currentRoute === "overview") renderOverview();
     if (currentRoute === "markets") renderMarkets();
