@@ -1121,7 +1121,13 @@
           openCmdk();
         }
       }
-      if (e.key === "Escape") closeCmdk();
+      if (e.key === "Escape") {
+        closeCmdk();
+        if ($("#sidebar")?.classList.contains("open")) {
+          closeSidebar();
+          $("#menuBtn")?.focus();
+        }
+      }
     });
 
     window.addEventListener("resize", () => {
