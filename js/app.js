@@ -52,7 +52,7 @@
     const cls = "token-avatar" + (sm ? " sm" : "");
     const tick = (t && t.ticker ? t.ticker : "?").replace(/'/g, "");
     if (t && t.image) {
-      return `<img class="${cls}" src="${t.image}" alt="" loading="lazy" onerror="this.outerHTML=window.ND.__fbIcon('${tick}','${cls}')">`;
+      return `<img class="${cls}" src="${t.image}" alt="" loading="lazy" decoding="async" onerror="this.outerHTML=window.ND.__fbIcon('${tick}','${cls}')">`;
     }
     return window.ND.__fbIcon(tick, cls);
   }
@@ -84,7 +84,7 @@
   function dexCell(name) {
     const key = String(name || "").toLowerCase().replace(/[^a-z]/g, "");
     const file = DEX_LOGOS[key];
-    const img = file ? `<img src="./assets/ecosystem/${file}" alt="" loading="lazy" />` : "";
+    const img = file ? `<img src="./assets/ecosystem/${file}" alt="" loading="lazy" decoding="async" />` : "";
     return `<span class="dex-cell">${img}<span>${name || "—"}</span></span>`;
   }
   function liqBar(liq, maxLiq) {

@@ -1,0 +1,6 @@
+2026-09-30 02:24 CDT — link/route audit: 8/8 external links 200, all 7 anchor targets OK, all 7 data-routes handled, all 14 target=_blank have rel=noopener. No changes needed.
+2026-09-30 00:24 CDT — exact-value tooltips for abbreviated counts (number formatting)
+2026-09-29 23:24 CDT — prefers-reduced-motion a11y
+2026-09-29 ~22:24 CDT — image weight compression (OG card 492KB->328KB)
+2026-09-30 04:24 CDT — mobile ~390px: fixed layout-viewport overflow (footer donate address min-width:0 + topbar chip/button slimming), verified 0 overflow hits in headless Chromium, pushed 4cec1b2
+2026-09-30 07:24 CDT — README + docs accuracy: README dropped stale '(all keyless, no backend)' claim (code intentionally sends owner's CoinGecko demo key as query param by design); coinGecko row now says so. docs/ADS.md ad unit IDs match js/ads.js (5/5), docs/DNS.md branding lines correct. No other drift. Committed d7c83df, verified live via raw.githubusercontent + curl 200 on nightdream.xyz.
