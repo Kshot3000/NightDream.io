@@ -352,10 +352,17 @@ a.row-link { color: inherit; text-decoration: none; cursor: pointer; }
 .trade-side.sell { color: var(--red); font-weight: 600; }
 
 /* ——— Portfolio ——— */
-.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+.tabs {
+  display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px;
+  /* ~390px and below (zoom / smaller phones): the tab row is nowrap — let it
+     scroll horizontally like a native tab bar instead of squeezing buttons. */
+  overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar { display: none; }
 .tab {
   padding: 10px 14px; font-size: 13px; font-weight: 600; color: var(--muted);
   border-bottom: 2px solid transparent; margin-bottom: -1px;
+  flex-shrink: 0; white-space: nowrap;
 }
 .tab:hover { color: var(--text); }
 .tab.active { color: #c4bbff; border-bottom-color: var(--accent); }
