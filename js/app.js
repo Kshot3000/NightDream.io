@@ -123,6 +123,12 @@
       dexAggCache = null; // force a fresh fetch, not a cached empty result
       render();
     }));
+  const bindNightForgeRetry = (root) => root?.querySelectorAll("[data-retry-nightforge]").forEach((b) =>
+    b.addEventListener("click", (e) => {
+      e.stopPropagation();
+      b.disabled = true; b.textContent = "Retrying…";
+      paintMidnightNetwork();
+    }));
   /* Chart error overlay (canvas stays, dimmed): message + retry inside .chart-wrap */
   function chartError(canvas, msg, retry) {
     const wrap = canvas?.closest(".chart-wrap");
@@ -860,8 +866,10 @@
     if (!o) {
       host.innerHTML = `<div class="empty" style="grid-column:1/-1;padding:18px">
         <strong>NightForge unreachable</strong>
-        <span class="muted">Network stats will retry on the next refresh. NIGHT price above still comes from CoinGecko.</span>
+        <span class="muted">Network stats retry automatically on the next refresh, or retry now. NIGHT price above still comes from CoinGecko.</span><br>
+        <button class="btn btn-sm" type="button" data-retry-nightforge>Retry</button>
       </div>`;
+      bindNightForgeRetry(host);
       if (src) src.textContent = "NightForge · offline";
       return;
     }
