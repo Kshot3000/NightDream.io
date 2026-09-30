@@ -128,7 +128,7 @@ window.LIVE = (function () {
             policy: uni.policy, asset: uni.asset, unit,
             price: p.priceUsd, ch1h: null, ch24: p.ch24, ch7d: null,
             mcap: null, fdv: null, vol: p.vol24, liq: p.liq,
-            holders: null, image: null, spark: [],
+            holders: null, image: p.img || null, spark: [],
             rank: null, ath: null, atl: null,
             category: categoryFor(uni.cg, uni.ticker),
             fallback: true,
@@ -269,6 +269,7 @@ window.LIVE = (function () {
         ch24: p.priceChange && p.priceChange.h24, ch5m: p.priceChange && p.priceChange.m5,
         buys24: b24, sells24: s24, buys1h: b1, sells1h: s1,
         url: p.url, pairAddress: p.pairAddress,
+        img: p.info && p.info.imageUrl ? p.info.imageUrl : null,
       };
     });
     rows.sort((a, b) => b.liq - a.liq);
