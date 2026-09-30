@@ -162,10 +162,16 @@ window.LIVE = (function () {
     _marketsInflight = (async () => {
       const url = `${CG}/coins/markets?vs_currency=usd&ids=${encodeURIComponent(allIds())}` +
         `&order=market_cap_desc&per_page=250&page=1&sparkline=true&price_change_percentage=1h%2C24h%2C7d`;
-      const key = "markets";
+      /* Cache entries carry their feed label so cached fallback rows still show
+         the "Fallback feed" badge instead of silently masquerading as primary. */
+      const key = "markets.v2";
       if (!force) {
         const c = cacheGet(key);
-        if (c !== undefined) { _marketsInflight = null; return c; }
+        if (c !== undefined) {
+          _marketsInflight = null;
+          if (c && c.feed) _feed = c.feed;
+          return (c && c.rows) || [];
+        }
       }
       const rows = await jget(url, MIN5);
       const out = [];
@@ -194,9 +200,10 @@ window.LIVE = (function () {
         if (fb.length) { out.push(...fb); _feed = "dexscreener"; }
         else _feed = null;
       }
-      if (out.length) cacheSet(key, out, MIN5);
+      if (out.length) cacheSet(key, { rows: out, feed: _feed }, MIN5);
       _marketsInflight = null;
-      return out.length ? out : cacheGet(key) || null;
+      const stale = cacheGet(key);
+      return out.length ? out : (stale && stale.rows) || null;
     })();
     return _marketsInflight;
   }
@@ -321,8 +328,9 @@ window.LIVE = (function () {
     if (unit === "lovelace") return adaUsd ? { usd: adaUsd, src: "ada" } : null;
     const uni = window.NDU.byUnit[unit];
     if (uni) {
-      const mk = cacheGet("markets");
-      const hit = mk && mk.find((t) => t.cg === uni.cg);
+      const mk = cacheGet("markets.v2");
+      const mrows = (mk && mk.rows) || mk;
+      const hit = mrows && mrows.find((t) => t.cg === uni.cg);
       if (hit && hit.price) return { usd: hit.price, ch24: hit.ch24, ticker: hit.ticker, name: hit.name, image: hit.image };
     }
     // long-tail: DexScreener quote
