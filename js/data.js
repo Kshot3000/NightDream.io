@@ -75,6 +75,16 @@ ND.fmt = {
     if (n == null || Number.isNaN(n)) return "—";
     return "$" + Number(n).toLocaleString(undefined, { maximumFractionDigits: 20 });
   },
+  exactNum(n) {
+    if (n == null || Number.isNaN(n)) return "—";
+    return Number(n).toLocaleString(undefined, { maximumFractionDigits: 20 });
+  },
+  // Abbreviated number with the exact value in a title tooltip (no tooltip when identical).
+  numx(n) {
+    if (n == null || Number.isNaN(n)) return "—";
+    const abbr = this.num(n), exact = this.exactNum(n);
+    return exact === abbr ? abbr : `<span title="${exact}">${abbr}</span>`;
+  },
   // Abbreviated USD with the exact value in a title tooltip (no tooltip when identical).
   usdx(n, d = 2) {
     if (n == null || Number.isNaN(n)) return "—";

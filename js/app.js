@@ -514,9 +514,9 @@
       statRow([
         ["Mcap", fmt.usdx(t.mcap)], ["FDV", fmt.usdx(t.fdv)],
         ["Vol 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.prx(t.ath, 4) : "—"],
-        ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
-        ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],
-        ["Max supply", md.max_supply ? fmt.num(md.max_supply) : "—"],
+        ["Circulating", md.circulating_supply ? fmt.numx(md.circulating_supply) : "—"],
+        ["Total supply", md.total_supply ? fmt.numx(md.total_supply) : "—"],
+        ["Max supply", md.max_supply ? fmt.numx(md.max_supply) : "—"],
         ["Category", t.category],
       ]);
       const ts = $("#tokenStats");
@@ -524,9 +524,9 @@
         ["Market cap", fmt.usdx(t.mcap)], ["FDV", fmt.usdx(t.fdv)],
         ["Volume 24h", fmt.usdx(t.vol)], ["ATH", t.ath ? fmt.prx(t.ath, 4) : "—"],
         ["ATL", t.atl ? fmt.prx(t.atl, 6) : "—"],
-        ["Circulating", md.circulating_supply ? fmt.num(md.circulating_supply) : "—"],
-        ["Total supply", md.total_supply ? fmt.num(md.total_supply) : "—"],
-        ["Max supply", md.max_supply ? fmt.num(md.max_supply) : "—"],
+        ["Circulating", md.circulating_supply ? fmt.numx(md.circulating_supply) : "—"],
+        ["Total supply", md.total_supply ? fmt.numx(md.total_supply) : "—"],
+        ["Max supply", md.max_supply ? fmt.numx(md.max_supply) : "—"],
       ].map(([k, v]) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`).join("");
     });
 
@@ -548,7 +548,7 @@
         <div class="kv"><span>Policy ID</span><button class="asset-id" data-copy="${t.policy}" title="${t.policy}">${fmt.hexShort(t.policy, 16)}</button></div>
         <div class="kv"><span>Fingerprint</span><code style="font-size:11px">${info ? info.fingerprint : "—"}</code></div>
         <div class="kv"><span>Decimals</span><span>${meta.decimals != null ? meta.decimals : "—"}</span></div>
-        <div class="kv"><span>Total supply</span><span>${info ? fmt.num(Number(info.total_supply) / Math.pow(10, dec)) : "—"}</span></div>
+        <div class="kv"><span>Total supply</span><span>${info ? fmt.numx(Number(info.total_supply) / Math.pow(10, dec)) : "—"}</span></div>
         <div class="kv"><span>Explorer</span><a href="https://cardanoscan.io/token/${t.unit}" target="_blank" rel="noopener">Cardanoscan ↗</a></div>`;
       const cp = $("#tokenOnchain [data-copy]");
       if (cp) cp.addEventListener("click", () => {
@@ -578,8 +578,8 @@
       if (bs) bs.innerHTML = `
         <div class="bs-bar"><span class="bs-buy" style="width:${bp}%"></span><span class="bs-sell" style="width:${100 - bp}%"></span></div>
         <div class="bs-legend">
-          <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.num(dex.buys)} buys · ${fmt.usdx(dex.buyVol)}</span>
-          <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.num(dex.sells)} sells · ${fmt.usdx(dex.sellVol)}</span>
+          <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.numx(dex.buys)} buys · ${fmt.usdx(dex.buyVol)}</span>
+          <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.numx(dex.sells)} sells · ${fmt.usdx(dex.sellVol)}</span>
         </div>
         <div class="muted" style="font-size:11px;margin-top:6px">24h DEX activity · DexScreener</div>`;
       if (pt) pt.innerHTML = dex.pairs.slice(0, 12).map((p) => `
@@ -615,8 +615,8 @@
     if (bs) bs.innerHTML = `
       <div class="bs-bar"><span class="bs-buy" style="width:${bp}%"></span><span class="bs-sell" style="width:${100 - bp}%"></span></div>
       <div class="bs-legend">
-        <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.num(buys)} buys</span>
-        <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.num(sells)} sells</span>
+        <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.numx(buys)} buys</span>
+        <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.numx(sells)} sells</span>
         <span class="muted">${fmt.usdx(vol)} 24h vol</span>
       </div>
       <div class="muted" style="font-size:11px;margin-top:6px">Top ADA pairs across tracked tokens · DexScreener</div>`;
@@ -806,7 +806,7 @@
     $("#dexPulse").innerHTML =
       pstat("Tracked DEX volume 24h", totVolRaw ? fmt.usdx(totVolRaw) : "—", "live · DexScreener") +
       pstat("Liquidity tracked", totLiq ? fmt.usdx(totLiq) : "—", agg.pairs.length + " top pairs") +
-      pstat("Pairs tracked", totPairs ? fmt.num(totPairs) : "—", agg.dexes.length + " venues") +
+      pstat("Pairs tracked", totPairs ? fmt.numx(totPairs) : "—", agg.dexes.length + " venues") +
       pstat("Top venue", top ? top.name : "—", top && totVolRaw ? ((top.vol24 / totVol) * 100).toFixed(1) + "% of volume" : "—");
     requestAnimationFrame(() => {
       const b = $("#dexVolChart"), d = $("#dexShareChart");
@@ -882,7 +882,7 @@
       if (src) src.textContent = "NightForge · offline";
       return;
     }
-    const fmtN = (n) => (n == null ? "—" : fmt.num(n));
+    const fmtN = (n) => (n == null ? "—" : fmt.numx(n));
     const items = [
       ["Blocks", fmtN(o.blocks)],
       ["TPS", o.tps != null ? Number(o.tps).toFixed(3) : "—"],
