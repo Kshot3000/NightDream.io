@@ -773,8 +773,8 @@
         <th>Token</th><th>Amount</th><th>Price</th><th>Value</th><th>24h</th></tr></thead><tbody>
         ${s.positions.map((p) => `
           <tr><td><div class="token-cell">${icon({ ticker: p.ticker, image: p.image }, 1)}<div class="token-meta"><strong>${p.ticker}</strong><span>${p.name}</span></div></div></td>
-          <td>${p.qty.toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
-          <td>${p.price ? fmt.usd(p.price, 6) : "—"}</td><td>${fmt.usdx(p.value)}</td>
+          <td title="${fmt.exactNum(p.qty)}">${p.qty.toLocaleString(undefined, { maximumFractionDigits: 4 })}</td>
+          <td>${p.price ? fmt.prx(p.price, 6) : "—"}</td><td>${fmt.usdx(p.value)}</td>
           <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td></tr>`).join("")
           || `<tr><td colspan="5" class="muted">No token positions found.</td></tr>`}
         </tbody></table></div>`;
@@ -1032,7 +1032,7 @@
       { label: "Watchlist", hint: "Saved", hash: "#watchlist" },
     ].map((p) => ({ ...p, hay: p.label.toLowerCase() }));
     const tokens = ND.TOKENS.map((t) => ({
-      label: `${t.ticker} · ${t.name}`, hint: fmt.usd(t.price, 4), hash: `#token/${t.ticker}`,
+      label: `${t.ticker} · ${t.name}`, hint: fmt.prx(t.price, 4), hash: `#token/${t.ticker}`,
       hay: `${t.ticker} ${t.name} ${t.policy} ${t.unit}`.toLowerCase(),
     }));
     let items = [...pages, ...tokens];
