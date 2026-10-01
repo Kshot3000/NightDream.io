@@ -4,8 +4,8 @@
    priced via CoinGecko cache / DexScreener. No private keys ever touched. */
 window.WALLET = (function () {
   const INSTALL = {
+    // nami omitted: namiwallet.io now serves the Lace site (Nami sunset into Lace) — covered below
     eternl: "https://eternl.io",
-    nami: "https://namiwallet.io",
     lace: "https://www.lace.io",
     flint: "https://chromewebstore.google.com/detail/flint/hnhobjmcibchnmglfbldbfabcgaknlkj",
     vespr: "https://www.vespr.xyz",
