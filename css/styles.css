@@ -592,6 +592,9 @@ img.token-avatar { object-fit: cover; }
 }
 .kv:last-child { border-bottom: none; }
 .kv > span:first-child { color: var(--muted); font-size: 12px; }
+/* ~390px: kv values can hold long unbreakable mono strings (hashes, fingerprints)
+   whose flex min-content would widen the page past the viewport — let them break. */
+.kv code { overflow-wrap: anywhere; }
 .kv code { font-family: var(--mono); font-size: 11px; }
 
 /* wallet */

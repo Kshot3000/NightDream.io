@@ -575,7 +575,7 @@
         : meta.decimals != null ? Number(meta.decimals) : 0;
       $("#tokenOnchain").innerHTML = `
         <div class="kv"><span>Policy ID</span><button class="asset-id" data-copy="${t.policy}" title="${t.policy}">${fmt.hexShort(t.policy, 16)}</button></div>
-        <div class="kv"><span>Fingerprint</span><code style="font-size:11px">${info.fingerprint || "—"}</code></div>
+        <div class="kv"><span>Fingerprint</span><code style="font-size:11px"${info.fingerprint ? ` title="${info.fingerprint}"` : ""}>${info.fingerprint ? fmt.hexShort(info.fingerprint, 16) : "—"}</code></div>
         <div class="kv"><span>Decimals</span><span>${meta.decimals != null ? meta.decimals : "—"}</span></div>
         <div class="kv"><span>Total supply</span><span>${fmt.numx(Number(info.total_supply) / Math.pow(10, dec))}</span></div>
         <div class="kv"><span>Explorer</span><a href="https://cardanoscan.io/token/${t.unit}" target="_blank" rel="noopener">Cardanoscan ↗</a></div>`;
