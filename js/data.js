@@ -99,6 +99,15 @@ ND.fmt = {
     const abbr = this.usd(n, d), exact = this.exactUsd(n);
     return exact === abbr ? abbr : `<span title="${exact}">${abbr}</span>`;
   },
+  // Estimated model figure (e.g. DUST calc): 2dp under 10K, abbreviated above,
+  // exact value in a title tooltip (no tooltip when identical).
+  estx(n, d = 2) {
+    if (n == null || Number.isNaN(n)) return "—";
+    const abbr = Math.abs(n) >= 10000 ? this.num(n)
+      : Number(n).toLocaleString(undefined, { minimumFractionDigits: d, maximumFractionDigits: d });
+    const exact = this.exactNum(n);
+    return exact === abbr ? abbr : `<span title="${exact}">${abbr}</span>`;
+  },
   timeAgo(ts) {
     const t = typeof ts === "number" ? ts : new Date(ts).getTime();
     const d = (Date.now() - t) / 1000;

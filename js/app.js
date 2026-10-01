@@ -979,8 +979,8 @@
     const factor = Number(rawFactor.toFixed(4));
     const cap = holdings * ND.MIDNIGHT.dustPerNightMax;
     const rate = holdings * factor;
-    el.innerHTML = `<strong>Capacity:</strong> ~${fmt.num(cap)} DUST max (5 × NIGHT)<br/>
-      <strong>Est. generation:</strong> ~${rate.toFixed(2)} DUST / day<br/>
+    el.innerHTML = `<strong>Capacity:</strong> ~${fmt.numx(cap)} DUST max (5 × NIGHT)<br/>
+      <strong>Est. generation:</strong> ~${fmt.estx(rate)} DUST / day<br/>
       <span class="muted">Model estimate — real rates follow Midnight network parameters.</span>`;
   }
 
