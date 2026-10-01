@@ -404,6 +404,7 @@
           const mc = $("#marketCat"); if (mc) mc.value = "";
           const wo = $("#watchOnly"); if (wo) wo.checked = false;
           $$("#marketTabs .tab").forEach((t) => t.classList.toggle("active", t.dataset.mtab === "all"));
+          syncToggleAria(); // keep aria-pressed in sync after filter reset
           renderMarketTokens();
           const search = $("#marketSearch");
           if (search) search.focus({ preventScroll: true });
