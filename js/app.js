@@ -511,10 +511,26 @@
     ]);
     paintTokenChart(t);
 
-    // detail → links, about, supplies
-    LIVE.detail(t.cg).then((d) => {
+    // detail → links, about, supplies (CoinGecko)
+    const paintTokenMeta = async () => {
+      const about = $("#tokenAbout");
+      if (!about) return;
+      const d = await LIVE.detail(t.cg);
       if (currentToken !== t || !$("#tokenPage")) return;
-      if (!d) { $("#tokenAbout").innerHTML = `<p class="muted">Description unavailable.</p>`; return; }
+      if (!d) {
+        /* CoinGecko-feed error state: explained message + retry (busts nothing —
+           failed fetches aren't cached, so retry just re-hits CoinGecko). */
+        about.innerHTML =
+          `<div class="empty" style="padding:16px 8px"><strong>Token details unavailable</strong>` +
+          `<span class="muted" style="display:block;margin-top:4px">CoinGecko appears to be unreachable from your network. The price and chart data above use cached or DEX-fallback feeds.</span><br>` +
+          `<button class="btn btn-sm" type="button" data-retry-meta>Retry</button></div>`;
+        about.querySelector("[data-retry-meta]")?.addEventListener("click", (e) => {
+          e.stopPropagation();
+          e.currentTarget.disabled = true; e.currentTarget.textContent = "Retrying…";
+          paintTokenMeta();
+        });
+        return;
+      }
       const L = d.links || {};
       const items = [];
       const hp = (L.homepage || []).filter(Boolean)[0];
@@ -548,7 +564,8 @@
         ["Total supply", md.total_supply ? fmt.numx(md.total_supply) : "—"],
         ["Max supply", md.max_supply ? fmt.numx(md.max_supply) : "—"],
       ].map(([k, v]) => `<div class="kv"><span>${k}</span><span>${v}</span></div>`).join("");
-    });
+    };
+    paintTokenMeta();
 
     // on-chain (Koios)
     const paintOnchain = async () => {
