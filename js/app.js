@@ -879,11 +879,19 @@
     const pstat = (label, value, sub) => `
       <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
       <div class="stat-sub">${sub}</div></div>`;
-    $("#dexPulse").innerHTML =
-      pstat("Tracked DEX volume 24h", totVolRaw ? fmt.usdx(totVolRaw) : "—", "live · DexScreener") +
-      pstat("Liquidity tracked", totLiq ? fmt.usdx(totLiq) : "—", agg.pairs.length + " top pairs") +
-      pstat("Pairs tracked", totPairs ? fmt.numx(totPairs) : "—", agg.dexes.length + " venues") +
-      pstat("Top venue", top ? top.name : "—", top && totVolRaw ? ((top.vol24 / totVol) * 100).toFixed(1) + "% of volume" : "—");
+    const dexFeedDown = !agg.dexes.length;
+    /* Feed-down: the four pulse cards showed bare "—" values with no explanation
+       and no retry in that region — collapse them into one explained panel +
+       retry (mirrors the dexErrHTML pattern used for the list/table below). */
+    $("#dexPulse").innerHTML = dexFeedDown
+      ? `<div class="empty" style="grid-column:1/-1;padding:24px 16px"><strong>DEX stats unavailable</strong>` +
+        `<span class="muted" style="display:block;margin-top:4px">DexScreener appears to be unreachable from your network, so tracked volume, liquidity, pair and venue counts can't be computed. Nothing was changed locally.</span><br>` +
+        `<button class="btn btn-sm" type="button" data-retry-dex>Retry</button></div>`
+      : pstat("Tracked DEX volume 24h", totVolRaw ? fmt.usdx(totVolRaw) : "—", "live · DexScreener") +
+        pstat("Liquidity tracked", totLiq ? fmt.usdx(totLiq) : "—", agg.pairs.length + " top pairs") +
+        pstat("Pairs tracked", totPairs ? fmt.numx(totPairs) : "—", agg.dexes.length + " venues") +
+        pstat("Top venue", top ? top.name : "—", top && totVolRaw ? ((top.vol24 / totVol) * 100).toFixed(1) + "% of volume" : "—");
+    bindDexRetry($("#dexPulse"));
     requestAnimationFrame(() => {
       const b = $("#dexVolChart"), d = $("#dexShareChart");
       if (!b || !d) return;
@@ -894,7 +902,6 @@
     $("#dexShareLegend").innerHTML = agg.dexes.map((d, i) => `
       <span><span><i class="dot-swatch" style="background:${colors[i % colors.length]}"></i>${d.name}</span>
       <span>${((d.vol24 / totVol) * 100).toFixed(1)}%</span></span>`).join("");
-    const dexFeedDown = !agg.dexes.length;
     $("#dexList").innerHTML = agg.dexes.map((d) => `
       <div class="list-row">${dexCell(d.name)}<span>${fmt.usdx(d.vol24)} · ${d.pairs} pairs</span></div>`).join("")
       || dexErrHTML();
