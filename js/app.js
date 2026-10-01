@@ -1013,6 +1013,7 @@
   function closeCmdk() {
     const opener = cmdkOpener; cmdkOpener = null;
     $("#cmdk").classList.remove("open");
+    $("#cmdkInput")?.removeAttribute("aria-activedescendant");
     // return focus to whatever opened the dialog (unless it was programmatic-only)
     if (opener && document.contains(opener)) {
       cmdkRestoring = opener.id === "globalSearch"; // globalSearch focus handler re-opens; suppress it here
@@ -1039,11 +1040,15 @@
     items = items.slice(0, 20);
     const list = $("#cmdkList");
     list.innerHTML = items.length ? items.map((i, idx) => `
-      <div class="cmdk-item ${idx === 0 ? "active" : ""}" role="option" aria-selected="${idx === 0 ? "true" : "false"}" data-hash="${i.hash}">
+      <div class="cmdk-item ${idx === 0 ? "active" : ""}" role="option" id="cmdk-item-${idx}" aria-selected="${idx === 0 ? "true" : "false"}" data-hash="${i.hash}">
         <span>${i.label}</span><span class="hint">${i.hint || ""}</span></div>`).join("")
       : `<div class="cmdk-empty">No matches</div>`;
     list.querySelectorAll(".cmdk-item").forEach((el) =>
       el.addEventListener("click", () => { closeCmdk(); navigate(el.dataset.hash); }));
+    // a11y: point the combobox input at the active option so screen readers
+    // announce it during arrow-key navigation (aria-selected alone doesn't).
+    const input = $("#cmdkInput");
+    if (input) { items.length ? input.setAttribute("aria-activedescendant", "cmdk-item-0") : input.removeAttribute("aria-activedescendant"); }
   }
 
   /* ——— Events ——— */
@@ -1146,6 +1151,9 @@
         items[next]?.classList.add("active");
         items.forEach((x) => x.setAttribute("aria-selected", x.classList.contains("active") ? "true" : "false"));
         items[next]?.scrollIntoView({ block: "nearest" });
+        const nextItem = items[next];
+        if (nextItem) e.target.setAttribute("aria-activedescendant", nextItem.id);
+        else e.target.removeAttribute("aria-activedescendant");
       }
     });
     window.addEventListener("keydown", (e) => {
