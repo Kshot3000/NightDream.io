@@ -313,12 +313,30 @@ window.LIVE = (function () {
     return jget(`${KOIOS}/tip`, 60 * 1000);
   }
 
+  /* ——— Same-origin snapshots (primary) ———
+     Koios and NightForge don't send Access-Control-Allow-Origin on GET
+     responses, so browsers block cross-origin fetch() from this site. A
+     scheduled GitHub Actions workflow (see .github/workflows/snapshots.yml
+     and scripts/koios-snapshot.mjs) fetches the bulk datasets server-side
+     every 6 hours into data/snapshots/, which loads same-origin with no
+     CORS issue. Snapshots older than 36h are ignored; the live-fetch path
+     below remains as a fallback. */
+  const SNAP_MAX_AGE = 36 * 3600 * 1000;
+  async function snapshot(path) {
+    try {
+      const r = await fetch(path, { cache: "no-store" });
+      if (!r.ok) return null;
+      const j = await r.json();
+      if (!j || !j.fetchedAt || Date.now() - j.fetchedAt > SNAP_MAX_AGE) return null;
+      return j;
+    } catch { return null; }
+  }
+
   /* ——— Cardano stake pools (Koios) ———
-     Full registered pool set from /pool_list (keyless, CORS-open), sorted
-     client-side by active stake, top N enriched with live saturation, block
-     count and delegators via ONE batched /pool_info POST. Cached 6h —
-     pool sets move slowly. Fails soft → null (UI renders an explained
-     error + retry, never skeletons or blanks). */
+     Top-150 registered pools by active stake, enriched with live saturation,
+     block count and delegators. Served from the 6-hour server snapshot;
+     falls back to live Koios fetch. Fails soft → null (UI renders an
+     explained error + retry, never skeletons or blanks). */
   /* Bulk Koios list endpoints are heavy: slim columns with ?select= and retry
      once after a short backoff (public Koios throttles burst traffic). */
   async function bulkGet(url, ttl) {
@@ -331,7 +349,10 @@ window.LIVE = (function () {
   }
 
   async function koiosPools(limit = 150) {
-    // pool_list is a large unpaginated dump — select only the columns we rank on
+    // Primary: same-origin snapshot (no CORS issues, refreshed every 6h)
+    const snap = await snapshot("data/snapshots/pools.json");
+    if (snap && Array.isArray(snap.rows) && snap.rows.length) return snap;
+    // Fallback: live Koios fetch (may be CORS-blocked in some browsers)
     const list = await bulkGet(
       `${KOIOS}/pool_list?select=pool_id_bech32,ticker,margin,active_stake,pool_status,retiring_epoch,pledge,fixed_cost`,
       HOUR6);
@@ -399,6 +420,9 @@ window.LIVE = (function () {
   /* ——— Midnight network (NightForge explorer) ——— */
   const NF = "https://mainnet.nightforge.jp/api";
   async function nightforgeOverview() {
+    // Primary: same-origin snapshot (NightForge sends no CORS headers at all)
+    const snap = await snapshot("data/snapshots/midnight.json");
+    if (snap && snap.overview) return snap.overview;
     return jget(`${NF}/analytics/overview`, 60 * 1000);
   }
   async function nightforgeHealth() {
@@ -424,6 +448,10 @@ window.LIVE = (function () {
   }
 
   async function koiosGovernance() {
+    // Primary: same-origin snapshot (no CORS issues, refreshed every 6h)
+    const snap = await snapshot("data/snapshots/governance.json");
+    if (snap && Array.isArray(snap.proposals) && snap.proposals.length) return snap;
+    // Fallback: live Koios fetch (may be CORS-blocked in some browsers)
     // Each underlying request is cached 12h by jget/jpost, so repeat visits
     // re-aggregate from localStorage without new network traffic.
     try {
