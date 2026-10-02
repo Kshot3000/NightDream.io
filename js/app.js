@@ -702,7 +702,7 @@
           chartLabel: `${t.ticker} price chart`,
           onHover: (c) => {
             const el = $("#hoverReadout");
-            if (el) el.textContent = c ? `O ${fmt.usd(c.o, 6)} · H ${fmt.usd(c.h, 6)} · L ${fmt.usd(c.l, 6)} · C ${fmt.usd(c.c, 6)}` : "";
+            if (el) el.textContent = c ? `O ${fmt.exactUsd(c.o)} · H ${fmt.exactUsd(c.h)} · L ${fmt.exactUsd(c.l)} · C ${fmt.exactUsd(c.c)}` : "";
           },
         });
         return;
@@ -717,7 +717,7 @@
       chartLabel: `${t.ticker} price chart`,
       onHover: (p) => {
         const el = $("#hoverReadout");
-        if (el) el.textContent = p ? `${fmt.usd(p.v, 6)} · ${new Date(p.t).toLocaleString()}` : "";
+        if (el) el.textContent = p ? `${fmt.exactUsd(p.v)} · ${new Date(p.t).toLocaleString()}` : "";
       },
     });
   }
