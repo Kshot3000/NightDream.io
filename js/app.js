@@ -17,7 +17,10 @@
   function toggleWatch(id) {
     if (watch.has(id)) watch.delete(id); else watch.add(id);
     saveWatch();
-    $$(`[data-star="${CSS.escape(id)}"]`).forEach((b) => b.classList.toggle("on", watch.has(id)));
+    $$(`[data-star="${CSS.escape(id)}"]`).forEach((b) => {
+      b.classList.toggle("on", watch.has(id));
+      b.setAttribute("aria-pressed", watch.has(id) ? "true" : "false"); // a11y: expose toggle state
+    });
     if (currentRoute === "watchlist") renderWatchlist();
     if (currentRoute === "overview") renderWatchPanel();
   }
@@ -327,7 +330,7 @@
     el.innerHTML = items.length ? items.map((t) => `
       <div class="list-row">
         <div class="token-cell"><a class="row-link" href="#token/${t.ticker}">${icon(t, 1)}<strong>${t.ticker}</strong></a>
-          <button class="star-btn on" data-star="${t.ticker}" type="button" aria-label="Remove ${t.ticker} from watchlist">★</button></div>
+          <button class="star-btn on" data-star="${t.ticker}" type="button" aria-pressed="true" aria-label="Remove ${t.ticker} from watchlist">★</button></div>
         <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</span>
       </div>`).join("")
       : `<div class="empty" style="padding:20px"><strong>No favorites yet</strong>Star tokens from Markets.</div>`;
@@ -421,7 +424,7 @@
     }
     tb.innerHTML = list.map((t, i) => `
       <tr>
-        <td><button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
+        <td><button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" aria-pressed="${watch.has(t.ticker)}" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
         <td class="rank-cell">${i + 1}</td>
         <td><a class="token-cell row-link" href="#token/${t.ticker}" data-goto="token/${t.ticker}">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></a></td>
         <td>${fmt.prx(t.price, t.price < 0.01 ? 6 : 4)}</td>
@@ -456,7 +459,7 @@
       <div class="token-banner">
         <div class="big-avatar">${icon(t)}</div>
         <div style="flex:1;min-width:200px">
-          <h1>${t.name} <button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}" style="font-size:18px">★</button></h1>
+          <h1>${t.name} <button class="star-btn ${watch.has(t.ticker) ? "on" : ""}" data-star="${t.ticker}" type="button" aria-pressed="${watch.has(t.ticker)}" aria-label="Toggle watchlist for ${t.ticker}" style="font-size:18px">★</button></h1>
           <div class="price-row"><span class="price">${fmt.prx(t.price, t.price < 0.01 ? 6 : 4)}</span>
             <span class="${chClass(t.ch24)}">${fmt.pct(t.ch24)} 24h</span>
             <span class="${chClass(t.ch7d)}">${fmt.pct(t.ch7d)} 7d</span></div>
@@ -1275,7 +1278,7 @@
     if (!ids.length) { tb.innerHTML = ""; empty.style.display = "block"; return; }
     empty.style.display = "none";
     tb.innerHTML = ids.map((t) => `
-      <tr><td><button class="star-btn on" data-star="${t.ticker}" type="button" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
+      <tr><td><button class="star-btn on" data-star="${t.ticker}" type="button" aria-pressed="true" aria-label="Toggle watchlist for ${t.ticker}">★</button></td>
       <td><a class="token-cell row-link" href="#token/${t.ticker}">${icon(t, 1)}<div class="token-meta"><strong>${t.ticker}</strong><span>${t.name}</span></div></a></td>
       <td>${fmt.prx(t.price, 6)}</td><td class="${chClass(t.ch24)}">${fmt.pct(t.ch24)}</td>
       <td>${fmt.usdx(t.vol)}</td><td>${fmt.usdx(t.mcap)}</td>
