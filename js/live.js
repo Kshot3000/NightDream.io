@@ -319,9 +319,22 @@ window.LIVE = (function () {
      count and delegators via ONE batched /pool_info POST. Cached 6h —
      pool sets move slowly. Fails soft → null (UI renders an explained
      error + retry, never skeletons or blanks). */
+  /* Bulk Koios list endpoints are heavy: slim columns with ?select= and retry
+     once after a short backoff (public Koios throttles burst traffic). */
+  async function bulkGet(url, ttl) {
+    let r = await jget(url, ttl, { timeout: 45000 });
+    if (r == null) {
+      await new Promise((res) => setTimeout(res, 1500));
+      r = await jget(url, ttl, { timeout: 45000 });
+    }
+    return r;
+  }
+
   async function koiosPools(limit = 150) {
-    // pool_list is a large (~1MB) unpaginated dump — allow a generous timeout
-    const list = await jget(`${KOIOS}/pool_list`, HOUR6, { timeout: 45000 });
+    // pool_list is a large unpaginated dump — select only the columns we rank on
+    const list = await bulkGet(
+      `${KOIOS}/pool_list?select=pool_id_bech32,ticker,margin,active_stake,pool_status,retiring_epoch,pledge,fixed_cost`,
+      HOUR6);
     if (!Array.isArray(list)) return null;
     const reg = list
       .filter((p) => p && p.pool_status === "registered" && !p.retiring_epoch)
@@ -414,7 +427,10 @@ window.LIVE = (function () {
     // Each underlying request is cached 12h by jget/jpost, so repeat visits
     // re-aggregate from localStorage without new network traffic.
     try {
-      const list = await jget(`${KOIOS}/proposal_list?limit=100`, GOV_TTL, { timeout: 45000 });
+      // meta_json is huge — select only the columns the tracker renders
+      const list = await bulkGet(
+        `${KOIOS}/proposal_list?select=proposal_id,proposal_type,proposed_epoch,ratified_epoch,enacted_epoch,expired_epoch,dropped_epoch,expiration,deposit,proposal_tx_hash&limit=100`,
+        GOV_TTL);
       if (!Array.isArray(list)) return null;
       const statusOf = (p) => p.enacted_epoch != null ? "Enacted"
         : p.ratified_epoch != null ? "Ratified"
@@ -425,12 +441,14 @@ window.LIVE = (function () {
         proposedEpoch: p.proposed_epoch, expiration: p.expiration,
         deposit: p.deposit != null ? Number(p.deposit) : null, tally: null,
       })).sort((a, b) => b.proposedEpoch - a.proposedEpoch);
-      // vote tallies for the 12 most recent proposals (one small request each)
-      await Promise.all(proposals.slice(0, 12).map(async (p) => {
+      // vote tallies for active proposals + the 8 most recent (bounded fan-out)
+      const withTally = proposals.filter((p) => p.status === "Active")
+        .concat(proposals.filter((p) => p.status !== "Active")).slice(0, 10);
+      await Promise.all(withTally.map(async (p) => {
         p.tally = await koiosProposalVotes(p.id);
       }));
       // DRep leaderboard: drep_list ids, then drep_info in 50-id batches (Koios body cap)
-      const dreps = await jget(`${KOIOS}/drep_list`, GOV_TTL, { timeout: 45000 });
+      const dreps = await bulkGet(`${KOIOS}/drep_list`, GOV_TTL);
       let board = [];
       if (Array.isArray(dreps) && dreps.length) {
         const ids = dreps.map((d) => d.drep_id);
