@@ -3,6 +3,9 @@
    - CoinGecko  /api/v3            → prices, mcap, volume, charts, OHLC, metadata
      (x_cg_demo_api_key query param; keyed requests pass CG's edge protection)
    - DexScreener /latest/dex       → DEX pairs, buys/sells, liquidity —
+     SundaeSwap, WingRiders and other indexed venues on Cardano
+   - GeckoTerminal /api/v2         → Minswap pools on Cardano (DexScreener
+     doesn't index Minswap's pools, so this is the venue's data source)
      ALSO the fallback price feed: when CoinGecko is unreachable/blocked, the
      token table is filled from per-token DexScreener quotes (+ MinSwap agg
      for ADA) so the site never goes blank on a single feed failure.
@@ -24,6 +27,12 @@ window.LIVE = (function () {
   const CG_DEMO_KEY = "CG-LWf3eRkt8KF6e95Fm9ELa3EF";
   const KOIOS = "https://api.koios.rest/api/v1";
   const DEXS = "https://api.dexscreener.com";
+  const GT = "https://api.geckoterminal.com/api/v2";
+  /* GeckoTerminal reachability flag — same pattern as dexUp. Set by jget so
+     the UI can tell a feed outage apart from a token that genuinely has no
+     Minswap pools. Starts true so the first render doesn't mislabel a cold
+     cache as down. */
+  let gtUp = true;
   /* DexScreener reachability flag — set by jget so the UI can tell a feed
      outage apart from a token that genuinely has no pairs. Starts true so
      the first render doesn't mislabel a cold cache as down. */
@@ -70,9 +79,11 @@ window.LIVE = (function () {
       const j = await r.json();
       cacheSet(url, j, ttlMs);
       if (url.indexOf(DEXS) === 0) dexUp = true;
+      if (url.indexOf(GT) === 0) gtUp = true;
       return j;
     } catch (e) {
       if (url.indexOf(DEXS) === 0) dexUp = false;
+      if (url.indexOf(GT) === 0) gtUp = false;
       return null;
     } finally {
       clearTimeout(timer);
@@ -124,7 +135,7 @@ window.LIVE = (function () {
     for (let i = 0; i < jobs.length; i += CONC) {
       const batch = await Promise.all(jobs.slice(i, i + CONC).map(async ({ uni, unit }) => {
         try {
-          const d = await dexPairs(unit);
+          const d = await dexPairsAll(unit);
           const p = d && d.pairs && d.pairs[0];
           if (!p || p.priceUsd == null) return null;
           return {
@@ -287,6 +298,74 @@ window.LIVE = (function () {
     return { pairs: rows, buys, sells, buyVol, sellVol, liquidity: liq, vol24 };
   }
 
+  /* ——— GeckoTerminal: Minswap pools on Cardano ———
+     DexScreener's /latest/dex/tokens endpoint does not index Minswap's
+     pools (it only surfaces SundaeSwap/WingRiders on cardano), so Minswap
+     liquidity has its own source: GeckoTerminal's free API, which indexes
+     Minswap pools on the cardano network. Rows use the same shape as
+     dexPairs() so callers can merge them. GeckoTerminal provides no
+     buys/sells counts, so those stay null and the UI renders "—". */
+  async function gtPools(unit) {
+    if (!unit || unit === "lovelace") return null;
+    const url = `${GT}/networks/cardano/tokens/${unit}/pools`;
+    const j = await jget(url, 2 * 60 * 1000);
+    if (!j || !Array.isArray(j.data) || !j.data.length) return null;
+    const dexes = (j.included || []).filter((i) => i && i.type === "dex");
+    const rows = j.data.map((p) => {
+      const a = p.attributes || {};
+      let venue = "minswap";
+      try {
+        const rel = p.relationships && p.relationships.dex && p.relationships.dex.data;
+        const inc = rel && dexes.find((i) => i.id === rel.id);
+        const nm = inc && inc.attributes && String(inc.attributes.name || "").toLowerCase();
+        venue = nm.includes("minswap") ? "minswap" : (nm || "minswap");
+      } catch (_) { venue = "minswap"; }
+      const vol = a.volume_usd || {};
+      const v = Number(vol.h24) || 0;
+      const lq = Number(a.reserve_in_usd) || 0;
+      const chg = a.price_change_percentage || {};
+      const addr = a.address || "";
+      return {
+        dex: venue, pair: a.name || "—",
+        priceUsd: a.base_token_price_usd ? Number(a.base_token_price_usd) : null,
+        priceNative: null, liq: lq, vol24: v,
+        ch24: chg.h24 != null ? Number(chg.h24) : null, ch5m: null,
+        buys24: null, sells24: null, buys1h: null, sells1h: null,
+        url: addr ? `https://www.geckoterminal.com/cardano/pools/${addr}` : null,
+        pairAddress: addr || null, img: null,
+      };
+    });
+    rows.sort((a, b) => b.liq - a.liq);
+    let liq = 0, vol24 = 0;
+    rows.forEach((r) => { liq += r.liq; vol24 += r.vol24; });
+    return { pairs: rows, buys: 0, sells: 0, buyVol: 0, sellVol: 0, liquidity: liq, vol24 };
+  }
+
+  /* Merged per-token pairs: DexScreener (SundaeSwap, WingRiders, …) +
+     GeckoTerminal (Minswap). One feed failing never blanks the other —
+     `sources` tells the UI which feeds contributed real data. */
+  async function dexPairsAll(unit) {
+    const [ds, gt] = await Promise.all([dexPairs(unit), gtPools(unit)]);
+    const rows = [];
+    if (ds && ds.pairs) rows.push(...ds.pairs);
+    if (gt && gt.pairs) rows.push(...gt.pairs);
+    if (!rows.length) return null;
+    let buys = 0, sells = 0, buyVol = 0, sellVol = 0, liq = 0, vol24 = 0;
+    rows.forEach((r) => {
+      liq += r.liq || 0; vol24 += r.vol24 || 0;
+      // buy/sell split only exists on DexScreener rows — don't invent it for GT
+      if (r.buys24 != null || r.sells24 != null) {
+        const b = r.buys24 || 0, s = r.sells24 || 0, v = r.vol24 || 0;
+        buys += b; sells += s;
+        const tot = b + s, bv = tot ? (v * b) / tot : v / 2;
+        buyVol += bv; sellVol += v - bv;
+      }
+    });
+    rows.sort((a, b) => b.liq - a.liq);
+    return { pairs: rows, buys, sells, buyVol, sellVol, liquidity: liq, vol24,
+             sources: { dexscreener: !!(ds && ds.pairs), geckoterminal: !!(gt && gt.pairs) } };
+  }
+
   /* ——— Koios on-chain ——— */
   async function koiosAsset(policy, assetName) {
     if (!policy) return null;
@@ -407,8 +486,8 @@ window.LIVE = (function () {
       const hit = mrows && mrows.find((t) => t.cg === uni.cg);
       if (hit && hit.price) return { usd: hit.price, ch24: hit.ch24, ticker: hit.ticker, name: hit.name, image: hit.image };
     }
-    // long-tail: DexScreener quote
-    const d = await dexPairs(unit);
+    // long-tail: DexScreener + GeckoTerminal (Minswap) quote
+    const d = await dexPairsAll(unit);
     if (d && d.pairs.length && d.pairs[0].priceUsd) {
       const p = d.pairs[0];
       return { usd: p.priceUsd, ticker: uni ? uni.ticker : unit.slice(0, 8), name: uni ? uni.name : "Unknown token" };
@@ -501,7 +580,7 @@ window.LIVE = (function () {
   }
 
   return {
-    markets, chart, ohlc, detail, dexPairs,
+    markets, chart, ohlc, detail, dexPairs, dexPairsAll, gtPools,
     koiosAsset, koiosHolders, koiosAddressInfo, koiosAccountAssets, koiosAddressTxs, koiosTip,
     koiosPools,
     koiosGovernance,
@@ -509,7 +588,8 @@ window.LIVE = (function () {
     nightforgeOverview, nightforgeHealth,
     feed: () => _feed,
     cacheGet, cacheSet, cacheDel,
-    CG, KOIOS, DEXS, NF,
+    CG, KOIOS, DEXS, GT, NF,
     dexUp: () => dexUp,
+    gtUp: () => gtUp,
   };
 })();

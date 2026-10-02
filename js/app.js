@@ -114,7 +114,7 @@
      retry actually re-hits DexScreener). Used when the feed returned nothing. */
   const dexErrHTML = () =>
     `<div class="empty" style="padding:28px 16px"><strong>DEX feed unavailable</strong>` +
-    `<span class="muted" style="display:block;margin-top:4px">DexScreener appears to be unreachable from your network. Nothing was changed locally.</span><br>` +
+    `<span class="muted" style="display:block;margin-top:4px">DexScreener and GeckoTerminal appear to be unreachable from your network. Nothing was changed locally.</span><br>` +
     `<button class="btn btn-sm" type="button" data-retry-dex>Retry</button></div>`;
   const bindDexRetry = (root) => root?.querySelectorAll("[data-retry-dex]").forEach((b) =>
     b.addEventListener("click", async (e) => {
@@ -204,9 +204,14 @@
     const top = [...ND.TOKENS].filter((t) => t.unit && t.unit !== "lovelace")
       .sort((a, b) => (b.mcap || 0) - (a.mcap || 0)).slice(0, 12);
     const pairs = [];
+    let gtSeen = false;
     for (let i = 0; i < top.length; i += 4) {
-      const chunk = await Promise.all(top.slice(i, i + 4).map((t) => LIVE.dexPairs(t.unit)));
-      chunk.forEach((d) => { if (d) pairs.push(...d.pairs); });
+      const chunk = await Promise.all(top.slice(i, i + 4).map((t) => LIVE.dexPairsAll(t.unit)));
+      chunk.forEach((d) => {
+        if (!d) return;
+        pairs.push(...d.pairs);
+        if (d.sources && d.sources.geckoterminal) gtSeen = true;
+      });
     }
     const byDex = new Map();
     const seen = new Set();
@@ -223,6 +228,7 @@
     dexAggCache = {
       pairs: uniq.sort((a, b) => b.vol24 - a.vol24),
       dexes: [...byDex.values()].sort((a, b) => b.vol24 - a.vol24),
+      gt: gtSeen, // GeckoTerminal (Minswap) contributed real pools
     };
     dexAggAt = Date.now();
     return dexAggCache;
@@ -606,16 +612,17 @@
     };
     paintOnchain();
 
-    // buys/sells + pairs
-    LIVE.dexPairs(t.unit).then((dex) => {
+    // buys/sells + pairs (DexScreener + GeckoTerminal for Minswap pools)
+    LIVE.dexPairsAll(t.unit).then((dex) => {
       if (currentToken !== t || !$("#tokenPage")) return;
       const bs = $("#buysSells"), pt = $("#tokenPairsTable")?.querySelector("tbody");
       if (!dex) {
         // ADA is the native asset: DexScreener has no per-token endpoint for it,
         // so surface the top ADA-quoted pairs from the shared DEX aggregation.
         if (t.ticker === "ADA") { renderAdaPairs(bs, pt, t); return; }
-        // Distinguish a DexScreener outage from a token with genuinely no pairs.
-        const feedDown = !LIVE.dexUp();
+        // Distinguish a feed outage from a token with genuinely no pairs —
+        // "down" only when BOTH feeds failed.
+        const feedDown = !LIVE.dexUp() && !LIVE.gtUp();
         if (bs) bs.innerHTML = feedDown ? dexErrHTML() : `<p class="muted">No DEX pair data found.</p>`;
         if (pt) pt.innerHTML = feedDown
           ? `<tr><td colspan="8">${dexErrHTML()}</td></tr>`
@@ -631,13 +638,13 @@
           <span><i class="dot-swatch" style="background:#2ee6c5"></i>${fmt.numx(dex.buys)} buys · ${fmt.usdx(dex.buyVol)}</span>
           <span><i class="dot-swatch" style="background:#ff6b7a"></i>${fmt.numx(dex.sells)} sells · ${fmt.usdx(dex.sellVol)}</span>
         </div>
-        <div class="muted" style="font-size:11px;margin-top:6px">24h DEX activity · DexScreener</div>`;
+        <div class="muted" style="font-size:11px;margin-top:6px">24h DEX activity · DexScreener + GeckoTerminal (buys/sells from DexScreener only)</div>`;
       if (pt) pt.innerHTML = dex.pairs.slice(0, 12).map((p) => `
         <tr><td><strong>${p.dex}</strong></td><td>${p.pair}</td>
         <td>${p.priceUsd ? fmt.prx(p.priceUsd, 6) : "—"}</td>
         <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
         <td>${fmt.usdx(p.vol24)}</td><td>${fmt.usdx(p.liq)}</td>
-        <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
+        <td><span class="up">${p.buys24 == null ? "—" : p.buys24}</span> / <span class="down">${p.sells24 == null ? "—" : p.sells24}</span></td>
         <td><a href="${p.url}" target="_blank" rel="noopener">Trade ↗</a></td></tr>`).join("");
     });
   }
@@ -675,7 +682,7 @@
       <td>${p.priceUsd ? fmt.prx(p.priceUsd, 6) : "—"}</td>
       <td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
       <td>${fmt.usdx(p.vol24)}</td><td>${fmt.usdx(p.liq)}</td>
-      <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
+      <td><span class="up">${p.buys24 == null ? "—" : p.buys24}</span> / <span class="down">${p.sells24 == null ? "—" : p.sells24}</span></td>
       <td><a href="${p.url}" target="_blank" rel="noopener">Trade ↗</a></td></tr>`).join("");
   }
 
@@ -870,7 +877,7 @@
     $("#dexPulse").innerHTML = skelCards(4);
     $("#poolsTable").querySelector("tbody").innerHTML = `<tr><td colspan="7">${skel(6)}</td></tr>`;
     const dn = $("#dexNote");
-    if (dn) dn.textContent = "Aggregating top pairs from DexScreener…";
+    if (dn) dn.textContent = "Aggregating top pairs from DexScreener + GeckoTerminal…";
     const agg = await getDexAgg();
     if (currentRoute !== "dex") return;
     const totVolRaw = agg.dexes.reduce((s, d) => s + d.vol24, 0);
@@ -882,14 +889,15 @@
       <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
       <div class="stat-sub">${sub}</div></div>`;
     const dexFeedDown = !agg.dexes.length;
+    const srcTag = agg.gt ? "live · DexScreener + GeckoTerminal" : "live · DexScreener";
     /* Feed-down: the four pulse cards showed bare "—" values with no explanation
        and no retry in that region — collapse them into one explained panel +
        retry (mirrors the dexErrHTML pattern used for the list/table below). */
     $("#dexPulse").innerHTML = dexFeedDown
       ? `<div class="empty" style="grid-column:1/-1;padding:24px 16px"><strong>DEX stats unavailable</strong>` +
-        `<span class="muted" style="display:block;margin-top:4px">DexScreener appears to be unreachable from your network, so tracked volume, liquidity, pair and venue counts can't be computed. Nothing was changed locally.</span><br>` +
+        `<span class="muted" style="display:block;margin-top:4px">Both DEX feeds (DexScreener and GeckoTerminal) appear to be unreachable from your network, so tracked volume, liquidity, pair and venue counts can't be computed. Nothing was changed locally.</span><br>` +
         `<button class="btn btn-sm" type="button" data-retry-dex>Retry</button></div>`
-      : pstat("Tracked DEX volume 24h", totVolRaw ? fmt.usdx(totVolRaw) : "—", "live · DexScreener") +
+      : pstat("Tracked DEX volume 24h", totVolRaw ? fmt.usdx(totVolRaw) : "—", srcTag) +
         pstat("Liquidity tracked", totLiq ? fmt.usdx(totLiq) : "—", agg.pairs.length + " top pairs") +
         pstat("Pairs tracked", totPairs ? fmt.numx(totPairs) : "—", agg.dexes.length + " venues") +
         pstat("Top venue", top ? top.name : "—", top && totVolRaw ? ((top.vol24 / totVol) * 100).toFixed(1) + "% of volume" : "—");
@@ -912,14 +920,14 @@
     $("#poolsTable").querySelector("tbody").innerHTML = vis.map((p) => `
       <tr><td><strong>${p.pair}</strong></td><td>${dexCell(p.dex)}</td><td>${liqBar(p.liq, maxLiq)}</td>
       <td>${fmt.usdx(p.vol24)}</td><td class="${chClass(p.ch24)}">${fmt.pct(p.ch24)}</td>
-      <td><span class="up">${p.buys24}</span> / <span class="down">${p.sells24}</span></td>
+      <td><span class="up">${p.buys24 == null ? "—" : p.buys24}</span> / <span class="down">${p.sells24 == null ? "—" : p.sells24}</span></td>
       <td><a href="${p.url}" target="_blank" rel="noopener">View ↗</a></td></tr>`).join("")
       || `<tr><td colspan="7">${dexErrHTML()}</td></tr>`;
     bindDexRetry($("#dexList"));
     bindDexRetry($("#poolsTable"));
     if (dn) dn.textContent = dexFeedDown
       ? "DEX feed unreachable · DexScreener · nothing changed locally"
-      : `24h volume aggregated from top pairs of 12 tracked tokens · DexScreener · updated ${fmt.timeAgo(dexAggAt)}`;
+      : `24h volume aggregated from top pairs of 12 tracked tokens · ${agg.gt ? "DexScreener + GeckoTerminal" : "DexScreener"} · updated ${fmt.timeAgo(dexAggAt)}`;
   }
 
   /* ——— Staking pools ——— */
