@@ -320,7 +320,8 @@ window.LIVE = (function () {
      pool sets move slowly. Fails soft → null (UI renders an explained
      error + retry, never skeletons or blanks). */
   async function koiosPools(limit = 150) {
-    const list = await jget(`${KOIOS}/pool_list`, HOUR6);
+    // pool_list is a large (~1MB) unpaginated dump — allow a generous timeout
+    const list = await jget(`${KOIOS}/pool_list`, HOUR6, { timeout: 45000 });
     if (!Array.isArray(list)) return null;
     const reg = list
       .filter((p) => p && p.pool_status === "registered" && !p.retiring_epoch)
@@ -413,7 +414,7 @@ window.LIVE = (function () {
     // Each underlying request is cached 12h by jget/jpost, so repeat visits
     // re-aggregate from localStorage without new network traffic.
     try {
-      const list = await jget(`${KOIOS}/proposal_list?limit=100`, GOV_TTL);
+      const list = await jget(`${KOIOS}/proposal_list?limit=100`, GOV_TTL, { timeout: 45000 });
       if (!Array.isArray(list)) return null;
       const statusOf = (p) => p.enacted_epoch != null ? "Enacted"
         : p.ratified_epoch != null ? "Ratified"
@@ -429,7 +430,7 @@ window.LIVE = (function () {
         p.tally = await koiosProposalVotes(p.id);
       }));
       // DRep leaderboard: drep_list ids, then drep_info in 50-id batches (Koios body cap)
-      const dreps = await jget(`${KOIOS}/drep_list`, GOV_TTL);
+      const dreps = await jget(`${KOIOS}/drep_list`, GOV_TTL, { timeout: 45000 });
       let board = [];
       if (Array.isArray(dreps) && dreps.length) {
         const ids = dreps.map((d) => d.drep_id);
