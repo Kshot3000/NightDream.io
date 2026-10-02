@@ -732,6 +732,8 @@ canvas.chart-lg { width: 100% !important; height: 100% !important; }
 /* ---------- Liquidity share bars ---------- */
 .liq-bar { height: 4px; border-radius: 3px; background: rgba(255,255,255,0.08); margin-top: 6px; overflow: hidden; min-width: 70px; }
 .liq-bar i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
+.liq-bar i.warn { background: linear-gradient(90deg, #ffb020, #ff8c3b); }
+.liq-bar i.over { background: linear-gradient(90deg, #ff6b7a, #d43f52); }
 
 /* ---------- DEX venue cells ---------- */
 .dex-cell { display: inline-flex; align-items: center; gap: 8px; }

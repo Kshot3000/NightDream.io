@@ -313,6 +313,42 @@ window.LIVE = (function () {
     return jget(`${KOIOS}/tip`, 60 * 1000);
   }
 
+  /* ——— Cardano stake pools (Koios) ———
+     Full registered pool set from /pool_list (keyless, CORS-open), sorted
+     client-side by active stake, top N enriched with live saturation, block
+     count and delegators via ONE batched /pool_info POST. Cached 6h —
+     pool sets move slowly. Fails soft → null (UI renders an explained
+     error + retry, never skeletons or blanks). */
+  async function koiosPools(limit = 150) {
+    const list = await jget(`${KOIOS}/pool_list`, HOUR6);
+    if (!Array.isArray(list)) return null;
+    const reg = list
+      .filter((p) => p && p.pool_status === "registered" && !p.retiring_epoch)
+      .sort((a, b) => Number(b.active_stake || 0) - Number(a.active_stake || 0))
+      .slice(0, Math.max(1, limit));
+    if (!reg.length) return null;
+    const info = await jpost(`${KOIOS}/pool_info`, { _pool_bech32_ids: reg.map((p) => p.pool_id_bech32) }, HOUR6);
+    const byId = {};
+    (Array.isArray(info) ? info : []).forEach((p) => { if (p) byId[p.pool_id_bech32] = p; });
+    const rows = reg.map((p) => {
+      const i = byId[p.pool_id_bech32] || {};
+      const margin = p.margin != null ? Number(p.margin) : null;
+      return {
+        ticker: p.ticker || null,
+        poolId: p.pool_id_bech32,
+        activeStake: Number(p.active_stake || 0),
+        liveStake: Number(i.live_stake || 0) || Number(p.active_stake || 0),
+        saturation: i.live_saturation != null ? Number(i.live_saturation) : null,
+        margin: margin != null && !Number.isNaN(margin) ? margin : null,
+        pledge: Number(p.pledge || 0),
+        fixedCost: Number(p.fixed_cost || 0),
+        delegators: i.live_delegators != null ? Number(i.live_delegators) : null,
+        blocks: i.block_count != null ? Number(i.block_count) : null,
+      };
+    });
+    return { rows, fetchedAt: Date.now() };
+  }
+
   /* ——— ADA/USD reference ——— */
   async function adaPrice() {
     const j = await jget(`${MINAGG}/ada-price?currency=usd`, MIN5);
@@ -355,6 +391,7 @@ window.LIVE = (function () {
   return {
     markets, chart, ohlc, detail, dexPairs,
     koiosAsset, koiosHolders, koiosAddressInfo, koiosAccountAssets, koiosAddressTxs, koiosTip,
+    koiosPools,
     adaPrice, priceForUnit, categoryFor,
     nightforgeOverview, nightforgeHealth,
     feed: () => _feed,

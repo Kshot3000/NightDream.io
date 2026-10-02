@@ -167,7 +167,7 @@
     if (location.hash === hash) render();
     else location.hash = hash;
   }
-  const ROUTES = ["overview", "markets", "token", "portfolio", "dex", "midnight", "watchlist"];
+  const ROUTES = ["overview", "markets", "token", "portfolio", "dex", "staking", "midnight", "watchlist"];
 
   function render() {
     const { route, param } = parseHash();
@@ -186,6 +186,7 @@
     if (currentRoute === "token") renderToken(param);
     if (currentRoute === "portfolio") WALLET_UI.render();
     if (currentRoute === "dex") renderDex();
+    if (currentRoute === "staking") renderStaking();
     if (currentRoute === "midnight") renderMidnight();
     if (currentRoute === "watchlist") renderWatchlist();
     syncToggleAria(); // reflect .active toggle state to assistive tech
@@ -920,6 +921,93 @@
       : `24h volume aggregated from top pairs of 12 tracked tokens · DexScreener · updated ${fmt.timeAgo(dexAggAt)}`;
   }
 
+  /* ——— Staking pools ——— */
+  let _stake = null, _stakeAt = 0, _stakeSortKey = "stake", _stakeSortDir = -1, _stakeQ = "";
+
+  function satCell(sat) {
+    if (sat == null || Number.isNaN(sat)) return "—";
+    const cls = sat > 100 ? "over" : sat > 80 ? "warn" : "";
+    return `<div title="${sat.toFixed(2)}% live saturation">${sat.toFixed(1)}%` +
+      `<div class="liq-bar"><i class="${cls}" style="width:${Math.min(sat, 100).toFixed(1)}%"></i></div></div>`;
+  }
+  function adaCell(lovelace) {
+    const ada = lovelace / 1e6;
+    const exact = fmt.exactNum(ada) + " ₳";
+    return `<span title="${exact}">${fmt.ada(ada)}</span>`;
+  }
+
+  async function renderStaking() {
+    $("#stakPulse").innerHTML = skelCards(4);
+    $("#stakePoolsTable").querySelector("tbody").innerHTML = `<tr><td colspan="7">${skel(8)}</td></tr>`;
+    const sn = $("#stakNote");
+    if (sn) sn.textContent = "Fetching stake pools from Koios…";
+    const res = await LIVE.koiosPools();
+    if (currentRoute !== "staking") return;
+    const err = `<div class="empty" style="grid-column:1/-1;padding:24px 16px"><strong>Stake pools unavailable</strong>` +
+      `<span class="muted" style="display:block;margin-top:4px">Koios appears to be unreachable from your network, so pool rankings can't be computed. Nothing was changed locally.</span><br>` +
+      `<button class="btn btn-sm" type="button" data-retry-staking>Retry</button></div>`;
+    if (!res || !res.rows.length) {
+      $("#stakPulse").innerHTML = err;
+      $("#stakePoolsTable").querySelector("tbody").innerHTML = `<tr><td colspan="7">${err}</td></tr>`;
+      if (sn) sn.textContent = "Koios · unreachable · nothing changed locally";
+      bindStakingRetry($("#stakPulse"));
+      bindStakingRetry($("#stakePoolsTable"));
+      return;
+    }
+    _stake = res.rows;
+    _stakeAt = res.fetchedAt;
+    _stakeQ = $("#stakeSearch") ? $("#stakeSearch").value : "";
+    if (sn) sn.textContent = `registered pools ranked by active stake · Koios · updated ${fmt.timeAgo(_stakeAt)}`;
+    paintStaking();
+  }
+
+  function paintStaking() {
+    if (!_stake) return;
+    const q = _stakeQ.trim().toLowerCase();
+    let rows = _stake.filter((r) =>
+      !q || (r.ticker && r.ticker.toLowerCase().includes(q)) || r.poolId.toLowerCase().includes(q));
+    const key = _stakeSortKey, dir = _stakeSortDir;
+    const val = (r) => key === "pool" ? (r.ticker || r.poolId)
+      : key === "stake" ? r.activeStake : key === "sat" ? (r.saturation == null ? -1 : r.saturation)
+      : key === "margin" ? (r.margin == null ? -1 : r.margin) : key === "pledge" ? r.pledge
+      : key === "delegators" ? (r.delegators == null ? -1 : r.delegators) : (r.blocks == null ? -1 : r.blocks);
+    rows = rows.slice().sort((a, b) => {
+      const x = val(a), y = val(b);
+      return (typeof x === "string" ? x.localeCompare(y) : x - y) * dir;
+    });
+    const satOver = _stake.filter((r) => r.saturation != null && r.saturation > 100).length;
+    const margins = _stake.map((r) => r.margin).filter((m) => m != null);
+    const avgMargin = margins.length ? margins.reduce((s, m) => s + m, 0) / margins.length : null;
+    const totStake = _stake.reduce((s, r) => s + r.activeStake, 0);
+    const pstat = (label, value, sub) => `
+      <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
+      <div class="stat-sub">${sub}</div></div>`;
+    $("#stakPulse").innerHTML =
+      pstat("Pools ranked", fmt.numx(_stake.length), "registered · active stake") +
+      pstat("Oversaturated", satOver ? `<span class="down">${satOver}</span>` : "0", "over 100% · rewards capped") +
+      pstat("Avg margin", avgMargin != null ? (avgMargin * 100).toFixed(1) + "%" : "—", "of ranked pools") +
+      pstat("Ranked active stake", adaCell(totStake), "combined · top pools");
+    $("#stakePoolsTable").querySelector("tbody").innerHTML = rows.map((r) => `
+      <tr><td><strong>${r.ticker || "—"}</strong><br>
+        <span class="muted" title="${r.poolId}">${r.poolId.slice(0, 14)}…</span></td>
+      <td>${adaCell(r.activeStake)}</td>
+      <td>${satCell(r.saturation)}</td>
+      <td>${r.margin != null ? (r.margin * 100).toFixed(1) + "%" : "—"}</td>
+      <td>${adaCell(r.pledge)}</td>
+      <td>${r.delegators != null ? fmt.numx(r.delegators) : "—"}</td>
+      <td>${r.blocks != null ? fmt.numx(r.blocks) : "—"}</td></tr>`).join("")
+      || `<tr><td colspan="7"><div class="empty">No pools match your search.</div></td></tr>`;
+    $$("#stakePoolsTable th").forEach((x) => x.classList.toggle("sorted", x.dataset.sort === _stakeSortKey));
+  }
+
+  function bindStakingRetry(scope) {
+    scope?.querySelectorAll("[data-retry-staking]").forEach((b) => b.addEventListener("click", () => {
+      b.disabled = true;
+      b.textContent = "Retrying…";
+      renderStaking();
+    }));
+  }
+
   /* ——— Midnight ——— */
   async function renderMidnight() {
     const night = ND.TOKENS.find((t) => t.cg === "midnight-3");
@@ -1129,6 +1217,17 @@
       else { marketSort.key = key; marketSort.dir = key === "ticker" ? 1 : -1; }
       $$("#marketsTable th").forEach((x) => x.classList.toggle("sorted", x.dataset.sort === key));
       renderMarketTokens();
+    });
+
+    // staking search + sort headers
+    $("#stakeSearch")?.addEventListener("input", (e) => { _stakeQ = e.target.value; paintStaking(); });
+    $("#stakePoolsTable")?.querySelector("thead")?.addEventListener("click", (e) => {
+      const th = e.target.closest("[data-sort]");
+      if (!th) return;
+      const key = th.dataset.sort;
+      if (_stakeSortKey === key) _stakeSortDir *= -1;
+      else { _stakeSortKey = key; _stakeSortDir = key === "pool" ? 1 : -1; }
+      paintStaking();
     });
 
     // portfolio tabs
