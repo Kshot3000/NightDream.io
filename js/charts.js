@@ -197,7 +197,7 @@ window.NDCharts = (function () {
       ctx.fill();
       ctx.fillStyle = "#e9ebf5";
       ctx.textAlign = "left";
-      ctx.fillText((item.pct != null ? item.pct + "%" : String(val)), pad.l + bw + 6, y + bh / 2 + 4);
+      ctx.fillText((item.pct != null ? (+item.pct).toFixed(1) + "%" : String(val)), pad.l + bw + 6, y + bh / 2 + 4);
     });
     // a11y text summary of the bars
     {

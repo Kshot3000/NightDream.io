@@ -489,7 +489,7 @@
         </section>
       </div>
       <div class="panel" style="margin-bottom:12px">
-        <div class="panel-head"><h2>DEX markets</h2><span class="muted" style="font-size:11px">DexScreener · Cardano pairs</span></div>
+        <div class="panel-head"><h2>DEX markets</h2><span class="muted" style="font-size:11px">DexScreener + GeckoTerminal · Cardano pairs</span></div>
         <div class="table-wrap"><table class="data-table" id="tokenPairsTable">
           <thead><tr><th>DEX</th><th>Pair</th><th>Price</th><th>24h</th><th>Vol 24h</th><th>Liquidity</th><th>Buys/Sells</th><th></th></tr></thead>
           <tbody><tr><td colspan="8">${skel(4)}</td></tr></tbody></table></div>
