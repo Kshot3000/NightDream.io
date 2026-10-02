@@ -28,7 +28,7 @@
   <link rel="preconnect" href="https://api.dexscreener.com" />
   <link rel="preconnect" href="https://mainnet.nightforge.jp" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="./css/styles.css?v=20261001a" />
+  <link rel="stylesheet" href="./css/styles.css?v=20261001b" />
   <link rel="stylesheet" href="./css/fx.css?v=20260928d" />
   <!-- Preload the above-the-fold hero background (CSS background image, not discoverable by the preloader) -->
   <link rel="preload" as="image" href="./assets/hero-cardano.webp" fetchpriority="high" />
@@ -68,6 +68,7 @@
         <div class="nav-label">DeFi</div>
         <a class="nav-item" href="#dex" data-route="dex"><span class="nav-icon">⇄</span> DEX / Liquidity</a>
         <a class="nav-item" href="#staking" data-route="staking"><span class="nav-icon">⚒</span> Staking Pools</a>
+        <a class="nav-item" href="#governance" data-route="governance"><span class="nav-icon">⚖</span> Governance</a>
         <div class="nav-label">Differentiator</div>
         <a class="nav-item" href="#midnight" data-route="midnight"><span class="nav-icon">☾</span> Midnight</a>
         <a class="nav-item" href="#watchlist" data-route="watchlist"><span class="nav-icon">★</span> Watchlist</a>
@@ -333,6 +334,42 @@
           </div>
         </section>
 
+        <!-- GOVERNANCE -->
+        <section id="governance" class="section" data-section="governance">
+          <div class="page-head">
+            <div>
+              <h1>Governance</h1>
+              <p class="muted">On-chain governance actions and DRep power · <span id="govNote"></span></p>
+            </div>
+          </div>
+          <div class="stat-grid" id="govPulse"></div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head"><h2>Active actions</h2>
+              <input type="search" id="govSearch" aria-label="Search governance actions" placeholder="Type, id or status…" />
+            </div>
+            <div class="stat-grid" id="govActive" style="margin-top:4px"></div>
+          </div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head"><h2>Recently decided</h2></div>
+            <div class="table-wrap">
+              <table class="data-table" id="govRecentTable">
+                <thead><tr><th>Action</th><th>Status</th><th>Proposed</th><th>Deposit</th><th>Tally</th><th>Votes</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel" style="margin-top:12px">
+            <div class="panel-head"><h2>DRep leaderboard</h2></div>
+            <div class="table-wrap">
+              <table class="data-table" id="govDrepTable">
+                <thead><tr><th>#</th><th>DRep</th><th>Voting power</th><th>Status</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <p class="muted" style="margin:10px 4px 0;font-size:12px">NightDream reports on-chain data and doesn't endorse any vote. Proposal metadata titles aren't published on-chain, so actions are identified by type and governance action ID. Data: Koios, refreshed every 12 hours.</p>
+          </div>
+        </section>
+
         <!-- MIDNIGHT -->
         <section id="midnight" class="section" data-section="midnight">
           <div class="page-head">
@@ -471,10 +508,10 @@
 
   <script src="./js/charts.js?v=20260929f"></script>
   <script src="./js/tokens.js?v=20260929a"></script>
-  <script src="./js/live.js?v=20261001b"></script>
+  <script src="./js/live.js?v=20261001c"></script>
   <script src="./js/data.js?v=20261001a"></script>
   <script src="./js/wallet.js?v=20261001d"></script>
-  <script src="./js/app.js?v=20261001e"></script>
+  <script src="./js/app.js?v=20261001f"></script>
   <script src="./js/bg.js?v=20260928d"></script>
   <script src="./js/ads.js?v=20260928d"></script>
 </body>

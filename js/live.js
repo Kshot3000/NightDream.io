@@ -327,9 +327,12 @@ window.LIVE = (function () {
       .sort((a, b) => Number(b.active_stake || 0) - Number(a.active_stake || 0))
       .slice(0, Math.max(1, limit));
     if (!reg.length) return null;
-    const info = await jpost(`${KOIOS}/pool_info`, { _pool_bech32_ids: reg.map((p) => p.pool_id_bech32) }, HOUR6);
+    // Koios caps POST bodies at 5120 bytes — batch pool_info in groups of 60
     const byId = {};
-    (Array.isArray(info) ? info : []).forEach((p) => { if (p) byId[p.pool_id_bech32] = p; });
+    for (let i = 0; i < reg.length; i += 60) {
+      const info = await jpost(`${KOIOS}/pool_info`, { _pool_bech32_ids: reg.slice(i, i + 60).map((p) => p.pool_id_bech32) }, HOUR6);
+      (Array.isArray(info) ? info : []).forEach((p) => { if (p) byId[p.pool_id_bech32] = p; });
+    }
     const rows = reg.map((p) => {
       const i = byId[p.pool_id_bech32] || {};
       const margin = p.margin != null ? Number(p.margin) : null;
@@ -388,10 +391,73 @@ window.LIVE = (function () {
     return jget(`${NF}/health`, 60 * 1000);
   }
 
+  /* ——— Governance (Koios) ——— */
+  const GOV_TTL = 12 * 3600 * 1000;
+
+  async function koiosProposalVotes(proposalId) {
+    try {
+      const v = await jget(`${KOIOS}/proposal_votes?_proposal_id=${encodeURIComponent(proposalId)}`, GOV_TTL);
+      if (!Array.isArray(v)) return null;
+      const tally = { yes: 0, no: 0, abstain: 0, total: v.length };
+      for (const x of v) {
+        const vote = String(x.vote || "").toLowerCase();
+        if (vote === "yes") tally.yes++;
+        else if (vote === "no") tally.no++;
+        else tally.abstain++;
+      }
+      return tally;
+    } catch { return null; }
+  }
+
+  async function koiosGovernance() {
+    // Each underlying request is cached 12h by jget/jpost, so repeat visits
+    // re-aggregate from localStorage without new network traffic.
+    try {
+      const list = await jget(`${KOIOS}/proposal_list?limit=100`, GOV_TTL);
+      if (!Array.isArray(list)) return null;
+      const statusOf = (p) => p.enacted_epoch != null ? "Enacted"
+        : p.ratified_epoch != null ? "Ratified"
+        : p.dropped_epoch != null ? "Dropped"
+        : p.expired_epoch != null ? "Expired" : "Active";
+      const proposals = list.map((p) => ({
+        id: p.proposal_id, type: p.proposal_type, status: statusOf(p),
+        proposedEpoch: p.proposed_epoch, expiration: p.expiration,
+        deposit: p.deposit != null ? Number(p.deposit) : null, tally: null,
+      })).sort((a, b) => b.proposedEpoch - a.proposedEpoch);
+      // vote tallies for the 12 most recent proposals (one small request each)
+      await Promise.all(proposals.slice(0, 12).map(async (p) => {
+        p.tally = await koiosProposalVotes(p.id);
+      }));
+      // DRep leaderboard: drep_list ids, then drep_info in 50-id batches (Koios body cap)
+      const dreps = await jget(`${KOIOS}/drep_list`, GOV_TTL);
+      let board = [];
+      if (Array.isArray(dreps) && dreps.length) {
+        const ids = dreps.map((d) => d.drep_id);
+        const infos = [];
+        for (let i = 0; i < ids.length; i += 50) {
+          const r = await jpost(`${KOIOS}/drep_info`, { _drep_ids: ids.slice(i, i + 50) }, GOV_TTL);
+          if (Array.isArray(r)) infos.push(...r);
+        }
+        board = infos
+          .map((d) => ({ id: d.drep_id, power: d.amount != null ? Number(d.amount) : 0, active: d.active }))
+          .filter((d) => d.power > 0)
+          .sort((a, b) => b.power - a.power)
+          .slice(0, 100);
+      }
+      return {
+        proposals,
+        dreps: board,
+        drepCount: Array.isArray(dreps) ? dreps.length : 0,
+        fetchedAt: Date.now(),
+      };
+    } catch { return null; }
+  }
+
   return {
     markets, chart, ohlc, detail, dexPairs,
     koiosAsset, koiosHolders, koiosAddressInfo, koiosAccountAssets, koiosAddressTxs, koiosTip,
     koiosPools,
+    koiosGovernance,
     adaPrice, priceForUnit, categoryFor,
     nightforgeOverview, nightforgeHealth,
     feed: () => _feed,

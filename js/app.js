@@ -167,7 +167,7 @@
     if (location.hash === hash) render();
     else location.hash = hash;
   }
-  const ROUTES = ["overview", "markets", "token", "portfolio", "dex", "staking", "midnight", "watchlist"];
+  const ROUTES = ["overview", "markets", "token", "portfolio", "dex", "staking", "governance", "midnight", "watchlist"];
 
   function render() {
     const { route, param } = parseHash();
@@ -187,6 +187,7 @@
     if (currentRoute === "portfolio") WALLET_UI.render();
     if (currentRoute === "dex") renderDex();
     if (currentRoute === "staking") renderStaking();
+    if (currentRoute === "governance") renderGovernance();
     if (currentRoute === "midnight") renderMidnight();
     if (currentRoute === "watchlist") renderWatchlist();
     syncToggleAria(); // reflect .active toggle state to assistive tech
@@ -1008,6 +1009,94 @@
     }));
   }
 
+  /* ——— Governance ——— */
+  let _gov = null, _govAt = 0, _govQ = "";
+
+  function govStatusCls(s) {
+    return s === "Enacted" || s === "Ratified" ? "up" : s === "Dropped" || s === "Expired" ? "down" : "";
+  }
+  function govIdShort(id) {
+    return id.length > 22 ? id.slice(0, 18) + "…" : id;
+  }
+  function tallyBar(t) {
+    if (!t || !t.total) return '<span class="muted">no votes yet</span>';
+    const y = (t.yes / t.total * 100).toFixed(1), n = (t.no / t.total * 100).toFixed(1);
+    return `<div class="tally" title="Yes ${t.yes} · No ${t.no} · Abstain ${t.abstain}">` +
+      `<i style="width:${y}%;background:var(--green)"></i>` +
+      `<i style="width:${n}%;background:var(--red)"></i>` +
+      `<i style="flex:1;background:#5b6470"></i></div>`;
+  }
+
+  async function renderGovernance() {
+    $("#govPulse").innerHTML = skelCards(4);
+    $("#govActive").innerHTML = skelCards(2);
+    $("#govRecentTable").querySelector("tbody").innerHTML = `<tr><td colspan="6">${skel(8)}</td></tr>`;
+    $("#govDrepTable").querySelector("tbody").innerHTML = `<tr><td colspan="4">${skel(10)}</td></tr>`;
+    const note = $("#govNote");
+    if (note) note.textContent = "Fetching governance data from Koios…";
+    const res = await LIVE.koiosGovernance();
+    if (currentRoute !== "governance") return;
+    if (!res) {
+      const err = `<div class="empty" style="grid-column:1/-1;padding:24px 16px"><strong>Governance data unavailable</strong>` +
+        `<span class="muted" style="display:block;margin-top:4px">Koios appears to be unreachable from your network. Nothing was changed locally.</span><br>` +
+        `<button class="btn btn-sm" type="button" data-retry-gov>Retry</button></div>`;
+      $("#govPulse").innerHTML = err;
+      $("#govActive").innerHTML = "";
+      $("#govRecentTable").querySelector("tbody").innerHTML = `<tr><td colspan="6">${err}</td></tr>`;
+      $("#govDrepTable").querySelector("tbody").innerHTML = `<tr><td colspan="4"><div class="empty">—</div></td></tr>`;
+      if (note) note.textContent = "Koios · unreachable · nothing changed locally";
+      $$("[data-retry-gov]").forEach((b) => b.addEventListener("click", () => {
+        b.disabled = true; b.textContent = "Retrying…"; renderGovernance();
+      }));
+      return;
+    }
+    _gov = res;
+    _govAt = res.fetchedAt;
+    _govQ = $("#govSearch") ? $("#govSearch").value : "";
+    if (note) note.textContent = `on-chain governance actions · Koios · updated ${fmt.timeAgo(_govAt)}`;
+    paintGovernance();
+  }
+
+  function paintGovernance() {
+    if (!_gov) return;
+    const q = _govQ.trim().toLowerCase();
+    const match = (p) => !q || p.type.toLowerCase().includes(q) || p.id.toLowerCase().includes(q) || p.status.toLowerCase().includes(q);
+    const active = _gov.proposals.filter((p) => p.status === "Active").filter(match);
+    const recent = _gov.proposals.filter((p) => p.status !== "Active").filter(match).slice(0, 30);
+    const totPower = _gov.dreps.reduce((s, d) => s + d.power, 0);
+    const pstat = (label, value, sub) => `
+      <div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div>
+      <div class="stat-sub">${sub}</div></div>`;
+    $("#govPulse").innerHTML =
+      pstat("Active actions", fmt.numx(_gov.proposals.filter((p) => p.status === "Active").length), "awaiting votes · on-chain") +
+      pstat("Proposals tracked", fmt.numx(_gov.proposals.length), "most recent 100 · Koios") +
+      pstat("Registered DReps", fmt.numx(_gov.drepCount), "delegated representatives") +
+      pstat("Top-100 DRep power", adaCell(totPower), "combined voting stake");
+    $("#govActive").innerHTML = active.length ? active.map((p) => `
+      <div class="stat-card">
+        <div class="stat-label">${p.type} · <span class="${govStatusCls(p.status)}">${p.status}</span></div>
+        <div style="font-size:13px;margin:6px 0" title="${p.id}">${govIdShort(p.id)}</div>
+        <div class="stat-sub">proposed epoch ${p.proposedEpoch} · expires epoch ${p.expiration}${p.deposit != null ? " · deposit " + fmt.ada(p.deposit / 1e6) : ""}</div>
+        <div style="margin-top:8px">${tallyBar(p.tally)}</div>
+        <div class="stat-sub" style="margin-top:4px">${p.tally ? `Yes ${p.tally.yes} · No ${p.tally.no} · Abstain ${p.tally.abstain}` : "vote tally unavailable"}</div>
+      </div>`).join("")
+      : `<div class="empty" style="grid-column:1/-1">${q ? "No active actions match your search." : "No active governance actions right now — every recent proposal has been decided."}</div>`;
+    $("#govRecentTable").querySelector("tbody").innerHTML = recent.map((p) => `
+      <tr><td><strong>${p.type}</strong><br><span class="muted" title="${p.id}">${govIdShort(p.id)}</span></td>
+      <td class="${govStatusCls(p.status)}">${p.status}</td>
+      <td>${p.proposedEpoch}</td>
+      <td>${p.deposit != null ? adaCell(p.deposit) : "—"}</td>
+      <td style="min-width:120px">${tallyBar(p.tally)}</td>
+      <td class="muted">${p.tally ? `Y ${p.tally.yes} / N ${p.tally.no} / A ${p.tally.abstain}` : "—"}</td></tr>`).join("")
+      || `<tr><td colspan="6"><div class="empty">No proposals match your search.</div></td></tr>`;
+    $("#govDrepTable").querySelector("tbody").innerHTML = _gov.dreps.slice(0, 50).map((d, i) => `
+      <tr><td class="muted">${i + 1}</td>
+      <td><span title="${d.id}">${govIdShort(d.id)}</span></td>
+      <td>${adaCell(d.power)}</td>
+      <td>${d.active ? '<span class="up">active</span>' : '<span class="muted">inactive</span>'}</td></tr>`).join("")
+      || `<tr><td colspan="4"><div class="empty">DRep data unavailable.</div></td></tr>`;
+  }
+
   /* ——— Midnight ——— */
   async function renderMidnight() {
     const night = ND.TOKENS.find((t) => t.cg === "midnight-3");
@@ -1219,7 +1308,8 @@
       renderMarketTokens();
     });
 
-    // staking search + sort headers
+    // governance search
+    $("#govSearch")?.addEventListener("input", (e) => { _govQ = e.target.value; paintGovernance(); });
     $("#stakeSearch")?.addEventListener("input", (e) => { _stakeQ = e.target.value; paintStaking(); });
     $("#stakePoolsTable")?.querySelector("thead")?.addEventListener("click", (e) => {
       const th = e.target.closest("[data-sort]");

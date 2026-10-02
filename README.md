@@ -14,6 +14,7 @@ candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), an
 - **Portfolio** — connect Nami / Eternl / Lace / Flint / Vespr (any CIP-30 wallet) for a live read-only portfolio: net worth, allocation, positions, NFTs, on-chain activity; or track any `addr1…`/`stake1…` address without connecting
 - **DEX analytics** — 24h volume aggregated from DexScreener across tracked tokens, per-DEX share, top pairs table
 - **Staking pools** — live stake-pool rankings from Koios: active stake, saturation, margin, pledge, delegators, blocks; sortable + searchable, with oversaturation warnings
+- **Governance** — on-chain governance actions with Yes/No/Abstain vote tallies and a DRep voting-power leaderboard, from Koios
 - **Midnight desk** — live NIGHT stats + chart, DUST generation model calculator, Cardano ↔ Midnight bridge explainer
 - **Watchlist + ⌘K command palette** — persisted locally
 
@@ -23,7 +24,7 @@ candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), an
 |---|---|
 | [CoinGecko](https://www.coingecko.com) | Prices, mcap, volume, % changes, sparklines, charts, OHLC candles, token metadata — requested with the owner's free demo key (sent as a query param, visible in served JS by design) |
 | [DexScreener](https://dexscreener.com) | Cardano DEX pairs, liquidity, 24h buys/sells |
-| [Koios](https://www.koios.rest) | On-chain asset info, holder counts, address/wallet balances, stake pool rankings |
+| [Koios](https://www.koios.rest) | On-chain asset info, holder counts, address/wallet balances, stake pool rankings, governance proposals, votes, DReps |
 | [MinSwap aggregator](https://minswap.org) | ADA/USD reference price |
 | [NightForge](https://nightforge.jp/api/docs) | Midnight network analytics (blocks, TPS, shielded, bridge) |
 
