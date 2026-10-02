@@ -1070,7 +1070,7 @@
     $("#govPulse").innerHTML =
       pstat("Active actions", fmt.numx(_gov.proposals.filter((p) => p.status === "Active").length), "awaiting votes · on-chain") +
       pstat("Proposals tracked", fmt.numx(_gov.proposals.length), "most recent 100 · Koios") +
-      pstat("Registered DReps", fmt.numx(_gov.drepCount), "delegated representatives") +
+      pstat("DReps scanned", fmt.numx(_gov.drepCount), "page scanned · Koios") +
       pstat("Top-100 DRep power", adaCell(totPower), "combined voting stake");
     $("#govActive").innerHTML = active.length ? active.map((p) => `
       <div class="stat-card">
