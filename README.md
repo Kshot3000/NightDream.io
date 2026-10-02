@@ -15,7 +15,7 @@ candlestick charts, DEX liquidity analytics, real wallet portfolios (CIP-30), an
 - **DEX analytics** — 24h volume aggregated from DexScreener across tracked tokens, per-DEX share, top pairs table
 - **Staking pools** — live stake-pool rankings from Koios: active stake, saturation, margin, pledge, delegators, blocks; sortable + searchable, with oversaturation warnings
 - **Governance** — on-chain governance actions with Yes/No/Abstain vote tallies and a DRep voting-power leaderboard, from Koios
-- **Midnight desk** — live NIGHT stats + chart, DUST generation model calculator, Cardano ↔ Midnight bridge explainer
+- **Midnight desk** — live NIGHT stats + chart, NIGHT redemption tracker (live countdown to the Dec 4, 2026 close, thaw-schedule calculator), DUST generation model calculator, Cardano ↔ Midnight bridge explainer
 - **Watchlist + ⌘K command palette** — persisted locally
 
 ## Data sources (no backend)

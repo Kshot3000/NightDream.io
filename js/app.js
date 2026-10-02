@@ -1110,6 +1110,7 @@
       $("#dustNote").textContent = ND.MIDNIGHT.generationNote;
       $("#bridgeNote").textContent = ND.MIDNIGHT.bridgeNote;
       updateDustCalc();
+      paintRedemption();
       return;
     }
     const stat = (label, value, sub, ch) => `
@@ -1123,6 +1124,7 @@
     $("#dustNote").textContent = ND.MIDNIGHT.generationNote;
     $("#bridgeNote").textContent = ND.MIDNIGHT.bridgeNote;
     updateDustCalc();
+    paintRedemption();
     drawNightChart(chartRanges.NIGHT);
     paintMidnightNetwork();
   }
@@ -1156,6 +1158,77 @@
       <div class="stat-value">${value}</div></div>`).join("");
     if (src) src.textContent = "NightForge · live";
   }
+  /* ——— NIGHT redemption tracker ———
+     Fixed public schedule (Glacier claim window closed Oct 20, 2025; redemption
+     thaws Dec 2025 → Dec 4, 2026; 90-day grace after). The thaw calculator is
+     pure local computation from the user's own inputs — NightDream has no
+     per-address claim API and never pretends to. */
+  const REDEEM_CLOSE = Date.UTC(2026, 11, 4);
+  const GRACE_END = Date.UTC(2027, 2, 4);
+  const THAW_DAYS = 90;
+
+  function paintRedemption() {
+    const phase = $("#redeemPhase"), stats = $("#redeemStats");
+    if (!phase || !stats) return;
+    const now = Date.now();
+    const daysTo = (t) => Math.max(0, Math.ceil((t - now) / 86400000));
+    let phaseTxt, closeVal, closeSub;
+    if (now < REDEEM_CLOSE) {
+      phaseTxt = "final thaw window · Sep 6 → Dec 4, 2026";
+      closeVal = daysTo(REDEEM_CLOSE) + " days";
+      closeSub = "redemption closes Dec 4, 2026";
+    } else if (now < GRACE_END) {
+      phaseTxt = "grace period · until ~Mar 4, 2027";
+      closeVal = daysTo(GRACE_END) + " days";
+      closeSub = "grace period ends ~Mar 4, 2027";
+    } else {
+      phaseTxt = "redemption ended";
+      closeVal = "ended";
+      closeSub = "redemption + grace period over";
+    }
+    phase.textContent = phaseTxt;
+    const card = (label, value, sub) =>
+      `<div class="stat-card"><div class="stat-label">${label}</div><div class="stat-value">${value}</div><div class="stat-sub">${sub}</div></div>`;
+    stats.innerHTML =
+      card("Redemption closes", closeVal, closeSub) +
+      card("Grace period ends", "~Mar 4, 2027", "90 days after close") +
+      card("Thaw model", "4 × 25%", "90 days apart") +
+      card("Lost-and-Found", "~252M NIGHT", "for eligible non-claimants");
+    try {
+      const a = localStorage.getItem("nd.redeem.alloc"), f = localStorage.getItem("nd.redeem.first");
+      if (a && $("#redeemAlloc") && !$("#redeemAlloc").value) $("#redeemAlloc").value = a;
+      if (f && $("#redeemFirst") && !$("#redeemFirst").value) $("#redeemFirst").value = f;
+    } catch (_) {}
+    paintRedeemTable();
+  }
+
+  function paintRedeemTable() {
+    const tb = $("#redeemTable")?.querySelector("tbody");
+    if (!tb) return;
+    const alloc = parseFloat($("#redeemAlloc")?.value), first = $("#redeemFirst")?.value;
+    if (!(alloc > 0) || !first) {
+      tb.innerHTML = `<tr><td colspan="4"><div class="empty">Enter your allocation and first thaw date to build your schedule.</div></td></tr>`;
+      return;
+    }
+    const d0 = new Date(first + "T00:00:00");
+    if (Number.isNaN(d0.getTime())) {
+      tb.innerHTML = `<tr><td colspan="4"><div class="empty">That date doesn't look valid — check the first-thaw field.</div></td></tr>`;
+      return;
+    }
+    const now = Date.now();
+    let html = "";
+    for (let i = 0; i < 4; i++) {
+      const d = new Date(d0);
+      d.setDate(d.getDate() + i * THAW_DAYS);
+      const past = d.getTime() <= now;
+      html += `<tr><td>${i + 1} of 4</td>` +
+        `<td>${d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</td>` +
+        `<td>${fmt.numx(Math.round((alloc / 4) * 100) / 100)} NIGHT</td>` +
+        `<td>${past ? '<span class="up">thawed</span>' : '<span class="muted">upcoming</span>'}</td></tr>`;
+    }
+    tb.innerHTML = html;
+  }
+
   async function drawNightChart(range) {
     const days = range === "24H" ? 1 : range === "7D" ? 7 : 30;
     const series = await LIVE.chart("midnight-3", days);
@@ -1333,6 +1406,17 @@
     // midnight calc
     $("#nightHoldings")?.addEventListener("input", updateDustCalc);
     $("#genFactor")?.addEventListener("input", updateDustCalc);
+
+    // redemption thaw calculator (local inputs, saved in this browser)
+    const saveRedeem = () => {
+      try {
+        localStorage.setItem("nd.redeem.alloc", $("#redeemAlloc")?.value || "");
+        localStorage.setItem("nd.redeem.first", $("#redeemFirst")?.value || "");
+      } catch (_) {}
+      paintRedeemTable();
+    };
+    $("#redeemAlloc")?.addEventListener("input", saveRedeem);
+    $("#redeemFirst")?.addEventListener("change", saveRedeem);
 
     // ⌘K
     $("#globalSearch")?.addEventListener("click", openCmdk);

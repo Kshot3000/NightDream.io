@@ -383,6 +383,37 @@
             <p class="muted" style="margin:0 0 12px;max-width:720px">Midnight is Cardano’s partner chain for shielded smart contracts. NIGHT is the native economic token; DUST is the renewable resource used to pay for shielded computation.</p>
             <div class="stat-grid" id="nightStats"></div>
           </div>
+          <div class="panel" style="margin-bottom:12px" id="mnRedeemPanel">
+            <div class="panel-head"><h2>NIGHT redemption</h2><span class="muted" id="redeemPhase"></span></div>
+            <p class="muted" style="font-size:13px;margin:0 0 12px;max-width:840px;line-height:1.55">
+              The Glacier claim window closed Oct 20, 2025. Claimants' NIGHT unlocks in four 25% thaws, 90 days apart —
+              we're in the final window now. Missed the claim? A ~252M NIGHT Lost-and-Found phase covers eligible users
+              who didn't claim in time. NightDream can't see your claim — exact dates live in the official portal.
+            </p>
+            <div class="stat-grid" id="redeemStats"></div>
+            <div style="margin-top:12px">
+              <h3 style="font-size:14px;margin:0 0 8px">My thaw schedule</h3>
+              <div class="calc-box">
+                <div>
+                  <label for="redeemAlloc">Your NIGHT allocation</label>
+                  <input type="number" id="redeemAlloc" min="0" step="1" placeholder="e.g. 40000" />
+                </div>
+                <div>
+                  <label for="redeemFirst">First thaw date (shown in the portal)</label>
+                  <input type="date" id="redeemFirst" />
+                </div>
+              </div>
+              <div class="table-wrap" style="margin-top:8px">
+                <table class="data-table" id="redeemTable">
+                  <thead><tr><th>Thaw</th><th>Date</th><th>Unlocks</th><th>Status</th></tr></thead>
+                  <tbody><tr><td colspan="4"><div class="empty">Enter your allocation and first thaw date to build your schedule.</div></td></tr></tbody>
+                </table>
+              </div>
+              <p class="muted" style="font-size:12px;margin:8px 0 0">Computed locally from your inputs and saved in this browser only.
+                Confirm exact dates at the official portal:
+                <a href="https://www.midnight.gd/how-to-get-night" target="_blank" rel="noopener">midnight.gd/how-to-get-night</a>.</p>
+            </div>
+          </div>
           <div style="margin-bottom:12px">
             <section class="panel">
               <div class="panel-head"><h2>DUST calculator</h2><span class="muted">5 DUST max capacity / NIGHT</span></div>
@@ -511,7 +542,7 @@
   <script src="./js/live.js?v=20261001d"></script>
   <script src="./js/data.js?v=20261001a"></script>
   <script src="./js/wallet.js?v=20261001d"></script>
-  <script src="./js/app.js?v=20261001f"></script>
+  <script src="./js/app.js?v=20261001g"></script>
   <script src="./js/bg.js?v=20260928d"></script>
   <script src="./js/ads.js?v=20260928d"></script>
 </body>
