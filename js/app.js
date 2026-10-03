@@ -1054,7 +1054,7 @@
       $("#govPulse").innerHTML = err;
       $("#govActive").innerHTML = "";
       $("#govRecentTable").querySelector("tbody").innerHTML = `<tr><td colspan="6">${err}</td></tr>`;
-      $("#govDrepTable").querySelector("tbody").innerHTML = `<tr><td colspan="4"><div class="empty">—</div></td></tr>`;
+      $("#govDrepTable").querySelector("tbody").innerHTML = `<tr><td colspan="4"><div class="empty" style="padding:16px 8px"><strong>DRep leaderboard unavailable</strong><span class="muted" style="display:block;margin-top:4px">Koios is unreachable, so DRep voting power can't be loaded. Use Retry above.</span></div></td></tr>`;
       if (note) note.textContent = "Koios · unreachable · nothing changed locally";
       $$("[data-retry-gov]").forEach((b) => b.addEventListener("click", () => {
         b.disabled = true; b.textContent = "Retrying…"; renderGovernance();
