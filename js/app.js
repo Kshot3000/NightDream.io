@@ -1009,7 +1009,12 @@
       <td>${r.delegators != null ? fmt.numx(r.delegators) : "—"}</td>
       <td>${r.blocks != null ? fmt.numx(r.blocks) : "—"}</td></tr>`).join("")
       || `<tr><td colspan="7"><div class="empty">No pools match your search.</div></td></tr>`;
-    $$("#stakePoolsTable th").forEach((x) => x.classList.toggle("sorted", x.dataset.sort === _stakeSortKey));
+    $$("#stakePoolsTable th").forEach((x) => {
+      const on = x.dataset.sort === _stakeSortKey;
+      x.classList.toggle("sorted", on);
+      if (on) x.setAttribute("aria-sort", _stakeSortDir === 1 ? "ascending" : "descending");
+      else x.removeAttribute("aria-sort");
+    });
   }
 
   function bindStakingRetry(scope) {
@@ -1382,15 +1387,39 @@
       el.addEventListener("change", renderMarketTokens);
     });
 
+    // Sortable headers are keyboard-operable (Enter/Space) as well as clickable,
+    // and expose their state via aria-sort — a <th> is not natively focusable
+    // or activatable, so without this sorting was mouse-only.
+    const syncSortAria = (tableSel, key, dir) => $$(tableSel + " th").forEach((x) => {
+      const on = x.dataset.sort === key;
+      x.classList.toggle("sorted", on);
+      if (on) x.setAttribute("aria-sort", dir === 1 ? "ascending" : "descending");
+      else x.removeAttribute("aria-sort");
+    });
+    const applyMarketSort = (key) => {
+      if (marketSort.key === key) marketSort.dir *= -1;
+      else { marketSort.key = key; marketSort.dir = key === "ticker" ? 1 : -1; }
+      syncSortAria("#marketsTable", key, marketSort.dir);
+      renderMarketTokens();
+    };
+    const applyStakeSort = (key) => {
+      if (_stakeSortKey === key) _stakeSortDir *= -1;
+      else { _stakeSortKey = key; _stakeSortDir = key === "pool" ? 1 : -1; }
+      paintStaking();
+    };
+    const sortKeydown = (apply) => (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const th = e.target.closest("[data-sort]");
+      if (!th) return;
+      e.preventDefault();
+      apply(th.dataset.sort);
+    };
     $("#marketsTable")?.querySelector("thead")?.addEventListener("click", (e) => {
       const th = e.target.closest("[data-sort]");
       if (!th) return;
-      const key = th.dataset.sort;
-      if (marketSort.key === key) marketSort.dir *= -1;
-      else { marketSort.key = key; marketSort.dir = key === "ticker" ? 1 : -1; }
-      $$("#marketsTable th").forEach((x) => x.classList.toggle("sorted", x.dataset.sort === key));
-      renderMarketTokens();
+      applyMarketSort(th.dataset.sort);
     });
+    $("#marketsTable")?.querySelector("thead")?.addEventListener("keydown", sortKeydown(applyMarketSort));
 
     // governance search
     $("#govSearch")?.addEventListener("input", (e) => { _govQ = e.target.value; paintGovernance(); });
@@ -1398,11 +1427,9 @@
     $("#stakePoolsTable")?.querySelector("thead")?.addEventListener("click", (e) => {
       const th = e.target.closest("[data-sort]");
       if (!th) return;
-      const key = th.dataset.sort;
-      if (_stakeSortKey === key) _stakeSortDir *= -1;
-      else { _stakeSortKey = key; _stakeSortDir = key === "pool" ? 1 : -1; }
-      paintStaking();
+      applyStakeSort(th.dataset.sort);
     });
+    $("#stakePoolsTable")?.querySelector("thead")?.addEventListener("keydown", sortKeydown(applyStakeSort));
 
     // portfolio tabs
     $("#pfTabs")?.addEventListener("click", (e) => {
