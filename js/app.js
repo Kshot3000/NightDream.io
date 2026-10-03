@@ -758,7 +758,7 @@
           <div class="wallet-grid">${cards}</div></div>
         <div class="panel"><div class="panel-head"><h2>Or track an address</h2></div>
           <p class="muted" style="font-size:13px">Paste any Cardano address (addr1… or stake1…) to watch it without connecting.</p>
-          <div class="row-flex"><input id="watchAddr" class="input" placeholder="addr1… / stake1…"><button class="btn btn-primary" id="watchAddBtn" type="button">Track</button></div>
+          <div class="row-flex"><input id="watchAddr" class="input" aria-label="Cardano address to track" placeholder="addr1… / stake1…"><button class="btn btn-primary" id="watchAddBtn" type="button">Track</button></div>
         </div>`;
       $$("#pfConnect [data-wallet]").forEach((b) =>
         b.addEventListener("click", async () => {
@@ -821,7 +821,7 @@
       $("#pf-wallets").innerHTML = wallets.map((w) => `
         <div class="list-row"><div><strong>${w.label}</strong><div class="muted" style="font-size:12px">${w.addr}</div></div>
         <span class="tag ${w.on ? "" : "markets"}">${w.on ? "connected" : "tracked"}</span></div>`).join("") + `
-        <div class="row-flex" style="margin-top:12px"><input id="watchAddr2" class="input" placeholder="Track another addr1… / stake1…">
+        <div class="row-flex" style="margin-top:12px"><input id="watchAddr2" class="input" aria-label="Another Cardano address to track" placeholder="Track another addr1… / stake1…">
         <button class="btn btn-sm" id="watchAddBtn2" type="button">Track</button>
         ${s.connected ? `<button class="btn btn-sm btn-ghost" id="pfDisconnect" type="button">Disconnect</button>` : ""}</div>`;
       $("#watchAddBtn2")?.addEventListener("click", async () => {
